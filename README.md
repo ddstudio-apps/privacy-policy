@@ -1,9 +1,9 @@
 # Privacy Policy
 
-This Privacy Policy applies to the Practice Compare app.
+This Privacy Policy applies to apps published by ddstudio-apps (e.g., PracticeCompare and ClipScope).
 
 ## Information Collection and Use
-The Practice Compare app does not collect, store, or share any personal data from users.
+These apps do not collect, store, or share any personal data from users.
 
 ## Third-Party Services
 The app does not use third-party services that collect information used to identify you.
