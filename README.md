@@ -1,6 +1,6 @@
 # Privacy Policy
 
-This Privacy Policy applies to apps published by ddstudio-apps (e.g., PracticeCompare, ClipScope, Splicing Video, and PDFまとめ帳).
+This Privacy Policy applies to apps published by ddstudio-apps (e.g., PracticeCompare, ClipScope, Splicing Video, PDFまとめ帳, and 数うめマス).
 
 ## Information Collection and Use
 These apps do not collect, store, or share any personal data from users.
@@ -18,5 +18,4 @@ This Privacy Policy may be updated from time to time. Any changes will be posted
 2026-01-06
 
 ## Last Updated
-2026-04-29
-
+2026-05-05
