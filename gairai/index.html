@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="外来終了報告">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>外来終了報告</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --ink: #16202a;
+      --muted: #687385;
+      --line: #d8dee8;
+      --accent: #0f766e;
+      --accent-dark: #0c625b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+    }
+
+    main {
+      width: min(100%, 520px);
+      display: grid;
+      gap: 14px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 2px 2px 4px;
+    }
+
+    .sub {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.15rem, 11vw, 3.3rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .date {
+      color: var(--muted);
+      text-align: right;
+      font-size: 0.92rem;
+      font-weight: 800;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+      box-shadow: 0 12px 34px rgba(22, 32, 42, 0.08);
+    }
+
+    .launch {
+      display: flex;
+      width: 100%;
+      min-height: 72px;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: clamp(1.35rem, 6vw, 1.75rem);
+      font-weight: 900;
+      text-decoration: none;
+      box-shadow: 0 10px 22px rgba(15, 118, 110, 0.22);
+    }
+
+    .launch:active {
+      background: var(--accent-dark);
+      transform: translateY(1px);
+    }
+
+    .note {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button,
+    .secondary {
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .status {
+      min-height: 22px;
+      margin: 10px 0 0;
+      color: var(--accent-dark);
+      font-size: 0.88rem;
+      font-weight: 800;
+    }
+
+    @media (max-width: 390px) {
+      body {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .tools {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="header">
+      <div>
+        <p class="sub">外来業務</p>
+        <h1>終了報告</h1>
+      </div>
+      <div class="date" id="today"></div>
+    </header>
+
+    <section class="panel" aria-label="外来終了報告入口">
+      <a class="launch" id="launch" href="https://script.google.com/macros/s/AKfycbw87Eqy8ORFBfj-tsVjFy2NXf6o-YOvabWvzvYjGfZOKg7u6xoHG1ppnhc3Cl9JAQhLVA/exec" rel="noreferrer">開く</a>
+      <p class="note">Googleドライブのエラー画面になる場合は、Safariで複数のGoogleアカウントにログインしている影響です。</p>
+      <div class="tools">
+        <button type="button" id="copy">リンクをコピー</button>
+        <a class="secondary" href="https://script.google.com/macros/s/AKfycbw87Eqy8ORFBfj-tsVjFy2NXf6o-YOvabWvzvYjGfZOKg7u6xoHG1ppnhc3Cl9JAQhLVA/exec" target="_blank" rel="noreferrer">別画面で開く</a>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script>
+    const appUrl = 'https://script.google.com/macros/s/AKfycbw87Eqy8ORFBfj-tsVjFy2NXf6o-YOvabWvzvYjGfZOKg7u6xoHG1ppnhc3Cl9JAQhLVA/exec';
+    const today = document.getElementById('today');
+    const copyButton = document.getElementById('copy');
+    const status = document.getElementById('status');
+
+    const now = new Date();
+    today.textContent = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'short'
+    }).format(now);
+
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(appUrl);
+        status.textContent = 'コピーしました';
+      } catch (error) {
+        status.textContent = appUrl;
+      }
+    });
+  </script>
+</body>
+</html>
