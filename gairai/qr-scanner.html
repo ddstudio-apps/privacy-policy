@@ -71,20 +71,6 @@
       letter-spacing: 0;
     }
 
-    .home-link {
-      min-width: 70px;
-      min-height: 48px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
-      color: var(--accent);
-      font-weight: 900;
-      text-decoration: none;
-    }
-
     .box {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -227,6 +213,15 @@
       display: none;
     }
 
+    .import-frame {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
     @media (max-width: 430px) {
       .box {
         padding: 14px;
@@ -250,7 +245,6 @@
         <p class="sub">外来業務</p>
         <h1>勤務表QR読み取り</h1>
       </div>
-      <a class="home-link" href="./">戻る</a>
     </header>
 
     <section class="box">
@@ -555,9 +549,37 @@
       }
 
       submitButton.disabled = true;
+      stopCamera();
+      setStatus('取り込み中です。画面を閉じずにお待ちください');
+
+      const frameName = 'gairai-import-frame';
+      const oldFrame = document.querySelector(`#${frameName}`);
+      if (oldFrame) oldFrame.remove();
+
+      const frame = document.createElement('iframe');
+      frame.id = frameName;
+      frame.name = frameName;
+      frame.className = 'import-frame';
+      frame.title = '勤務表取り込み結果';
+
+      let submitted = false;
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        setStatus('取り込みました。左上の×で閉じてください');
+      };
+
+      frame.addEventListener('load', () => {
+        if (submitted) finish();
+      });
+      document.body.appendChild(frame);
+
       const form = document.createElement('form');
       form.method = 'post';
       form.action = APP_URL;
+      form.target = frameName;
+      form.className = 'hidden';
 
       [
         ['action', 'importBreakSchedule'],
@@ -572,7 +594,9 @@
       });
 
       document.body.appendChild(form);
+      submitted = true;
       form.submit();
+      setTimeout(finish, 5000);
     }
 
     document.querySelector('#start').addEventListener('click', startCamera);
