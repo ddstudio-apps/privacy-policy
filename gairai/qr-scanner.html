@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <title>勤務表QR読み取り</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --ink: #16202a;
+      --muted: #687385;
+      --line: #d8dee8;
+      --accent: #0f766e;
+      --accent-dark: #0c625b;
+      --ok-bg: #e8f5f4;
+      --warn-bg: #fff7ed;
+      --warn: #b45309;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(100%, 760px);
+      margin: 0 auto;
+      padding: max(16px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom));
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .sub {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 10vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .home-link {
+      min-width: 70px;
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--accent);
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+      box-shadow: 0 12px 34px rgba(22, 32, 42, 0.08);
+    }
+
+    .actions,
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    input {
+      min-height: 52px;
+      padding: 0 14px;
+      font-size: 1.15rem;
+    }
+
+    textarea {
+      min-height: 96px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+
+    button,
+    .secondary {
+      min-height: 44px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 900;
+      text-decoration: none;
+    }
+
+    .primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .reader {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      min-height: 240px;
+      max-height: 560px;
+      border-radius: 8px;
+      background: #0f172a;
+      object-fit: contain;
+    }
+
+    .reader-wrap {
+      margin-bottom: 12px;
+    }
+
+    .parts {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .part {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 900;
+      line-height: 34px;
+    }
+
+    .part.done {
+      border-color: var(--accent);
+      background: var(--ok-bg);
+      color: var(--accent);
+    }
+
+    .status {
+      min-height: 26px;
+      margin: 0 0 14px;
+      border-radius: 8px;
+      color: var(--accent-dark);
+      font-weight: 900;
+      line-height: 1.6;
+    }
+
+    .status.warn {
+      background: var(--warn-bg);
+      color: var(--warn);
+      padding: 12px 14px;
+    }
+
+    .preview {
+      min-height: 44px;
+      margin: 0 0 14px;
+      border-radius: 8px;
+      background: var(--ok-bg);
+      color: var(--accent-dark);
+      padding: 12px 14px;
+      font-weight: 900;
+      line-height: 1.6;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 430px) {
+      .box {
+        padding: 14px;
+      }
+
+      .parts {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .actions button,
+      .actions .secondary {
+        flex: 1 1 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div>
+        <p class="sub">外来業務</p>
+        <h1>勤務表QR読み取り</h1>
+      </div>
+      <a class="home-link" href="./">戻る</a>
+    </header>
+
+    <section class="box">
+      <div class="field">
+        <label for="passcode">管理コード</label>
+        <input id="passcode" inputmode="numeric" autocomplete="off">
+      </div>
+
+      <div class="actions">
+        <button class="primary" type="button" id="start">カメラ開始</button>
+        <button type="button" id="stop">停止</button>
+        <button type="button" id="clear">クリア</button>
+        <button class="primary" type="button" id="submit" disabled>取り込み</button>
+      </div>
+
+      <div class="reader-wrap">
+        <video class="reader" id="video" autoplay muted playsinline></video>
+        <canvas id="canvas" class="hidden"></canvas>
+      </div>
+
+      <div class="parts" id="parts"></div>
+      <p class="preview hidden" id="preview"></p>
+      <p class="status" id="status" aria-live="polite"></p>
+
+      <div class="field">
+        <label for="manual">QR文字列</label>
+        <textarea id="manual"></textarea>
+      </div>
+      <div class="actions">
+        <button type="button" id="add-text">追加</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script>
+    const APP_URL = 'https://script.google.com/macros/s/AKfycbw87Eqy8ORFBfj-tsVjFy2NXf6o-YOvabWvzvYjGfZOKg7u6xoHG1ppnhc3Cl9JAQhLVA/exec';
+    const passcode = document.querySelector('#passcode');
+    const video = document.querySelector('#video');
+    const canvas = document.querySelector('#canvas');
+    const parts = document.querySelector('#parts');
+    const status = document.querySelector('#status');
+    const preview = document.querySelector('#preview');
+    const manual = document.querySelector('#manual');
+    const submitButton = document.querySelector('#submit');
+
+    let stream = null;
+    let scanning = false;
+    let qrImport = { key: '', week: '', hash: '', total: 0, parts: {} };
+    let lastQrText = '';
+    let lastQrTextAt = 0;
+
+    function setStatus(message, warn = false) {
+      status.textContent = message;
+      status.classList.toggle('warn', warn);
+    }
+
+    function checksumText(text) {
+      let sum = 0;
+      for (let i = 0; i < text.length; i += 1) {
+        sum = (sum + (text.charCodeAt(i) * (i + 1))) % 1000000007;
+      }
+      return String(sum);
+    }
+
+    function base64UrlDecode(value) {
+      const source = String(value || '');
+      const base64 = source.replaceAll('-', '+').replaceAll('_', '/')
+        + '==='.slice(0, (4 - (source.length % 4)) % 4);
+      const binary = atob(base64);
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    function getMissingParts() {
+      if (!qrImport.total) return [];
+      return Array.from({ length: qrImport.total }, (_, index) => index + 1)
+        .filter((part) => !qrImport.parts[part]);
+    }
+
+    function formatMissingParts(missing) {
+      return missing.length ? `未読: ${missing.join(', ')}` : '';
+    }
+
+    function expandBreakWeekPayload(payload) {
+      if (payload && payload.app === 'gairai-break-week-v1' && Array.isArray(payload.entries)) {
+        return {
+          importId: payload.importId || payload.weekStart || qrImport.week,
+          weekStart: payload.weekStart || qrImport.week,
+          entries: payload.entries,
+        };
+      }
+
+      const type = payload && (payload.a || payload.app);
+      if (type !== 'gairai-break-week-v2') {
+        throw new Error('勤務表QRの形式を確認してください');
+      }
+      if (!Array.isArray(payload.d) || !Array.isArray(payload.l) || !Array.isArray(payload.e)) {
+        throw new Error('勤務表QRのデータを確認してください');
+      }
+
+      const entries = payload.e.map((row, index) => {
+        const dateIndex = Number(row && row[0]);
+        const locationIndex = Number(row && row[1]);
+        return {
+          date: String(payload.d[dateIndex] || ''),
+          location: String(payload.l[locationIndex] || ''),
+          phone: '',
+          member: String(row && row[2] || ''),
+          sort: index + 1,
+        };
+      }).filter((row) => row.date && row.location && row.member);
+
+      if (!entries.length) {
+        throw new Error('取り込める勤務表データがありません');
+      }
+
+      return {
+        importId: payload.i || payload.w || qrImport.week,
+        weekStart: payload.w || qrImport.week,
+        entries,
+      };
+    }
+
+    function assembleSchedule() {
+      const missing = getMissingParts();
+      if (missing.length) {
+        throw new Error(`未読のQRがあります（${formatMissingParts(missing)}）`);
+      }
+      const data = Array.from({ length: qrImport.total }, (_, index) => qrImport.parts[index + 1] || '').join('');
+      if (!data || checksumText(data) !== qrImport.hash) {
+        throw new Error('QRデータの確認に失敗しました');
+      }
+      return expandBreakWeekPayload(JSON.parse(base64UrlDecode(data)));
+    }
+
+    function renderParts() {
+      if (!qrImport.total) {
+        parts.innerHTML = '<div class="part">未読</div>';
+        preview.classList.add('hidden');
+        submitButton.disabled = true;
+        return;
+      }
+
+      parts.innerHTML = Array.from({ length: qrImport.total }, (_, index) => {
+        const part = index + 1;
+        return `<div class="part ${qrImport.parts[part] ? 'done' : ''}">${part}/${qrImport.total}</div>`;
+      }).join('');
+
+      const missing = getMissingParts();
+      submitButton.disabled = missing.length > 0;
+      if (!missing.length) {
+        try {
+          const schedule = assembleSchedule();
+          preview.textContent = `${schedule.weekStart || qrImport.week} / ${schedule.entries.length}件`;
+          preview.classList.remove('hidden');
+        } catch (error) {
+          preview.classList.add('hidden');
+          submitButton.disabled = true;
+          setStatus(error.message || 'QRデータを確認してください', true);
+        }
+      } else {
+        preview.classList.add('hidden');
+      }
+    }
+
+    function resetImport(message = '') {
+      qrImport = { key: '', week: '', hash: '', total: 0, parts: {} };
+      lastQrText = '';
+      lastQrTextAt = 0;
+      manual.value = '';
+      renderParts();
+      setStatus(message);
+    }
+
+    function acceptQrText(text) {
+      const raw = String(text || '').trim();
+      if (!raw) return;
+
+      let chunk;
+      try {
+        chunk = JSON.parse(raw);
+      } catch (error) {
+        setStatus('QRの内容を読み取れませんでした', true);
+        return;
+      }
+
+      if (chunk.app !== 'gairai-break-v1') {
+        setStatus('このQRは休憩確認用ではありません', true);
+        return;
+      }
+
+      const total = Number(chunk.total);
+      const part = Number(chunk.part);
+      const hash = String(chunk.hash || '');
+      const week = String(chunk.week || '');
+      const data = String(chunk.data || '');
+      if (!total || !part || part < 1 || part > total || !hash || !data) {
+        setStatus('QRの分割情報を確認してください', true);
+        return;
+      }
+
+      const key = `${week}:${hash}:${total}`;
+      if (qrImport.key && qrImport.key !== key) {
+        resetImport();
+      }
+      if (!qrImport.key) {
+        qrImport = { key, week, hash, total, parts: {} };
+      }
+      qrImport.parts[part] = data;
+      renderParts();
+
+      const missing = getMissingParts();
+      setStatus(missing.length
+        ? `QR ${Object.keys(qrImport.parts).length}/${qrImport.total} を読み取りました（${formatMissingParts(missing)}）`
+        : 'すべて読み取りました。取り込みできます');
+
+      if (navigator.vibrate) {
+        navigator.vibrate(missing.length ? 40 : [50, 60, 50]);
+      }
+    }
+
+    function acceptScannedQrText(text) {
+      const raw = String(text || '').trim();
+      const now = Date.now();
+      if (!raw || (raw === lastQrText && now - lastQrTextAt < 900)) return;
+      lastQrText = raw;
+      lastQrTextAt = now;
+      acceptQrText(raw);
+    }
+
+    async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus('この端末ではカメラ読み取りを使えません', true);
+        return;
+      }
+      if (typeof jsQR !== 'function') {
+        setStatus('QR読み取りライブラリを読み込めませんでした', true);
+        return;
+      }
+
+      stopCamera();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        });
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+        scanFrame();
+        setStatus('カメラを開始しました');
+      } catch (error) {
+        setStatus(error.message || 'カメラを開始できませんでした', true);
+      }
+    }
+
+    function stopCamera() {
+      scanning = false;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+    }
+
+    function scanFrame() {
+      if (!scanning) return;
+      try {
+        if (video.readyState >= 2) {
+          const width = video.videoWidth;
+          const height = video.videoHeight;
+          if (width && height) {
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            if (canvas.width !== width) canvas.width = width;
+            if (canvas.height !== height) canvas.height = height;
+            context.drawImage(video, 0, 0, width, height);
+            const imageData = context.getImageData(0, 0, width, height);
+            const code = jsQR(imageData.data, width, height, { inversionAttempts: 'dontInvert' });
+            if (code && code.data) acceptScannedQrText(code.data);
+          }
+        }
+      } catch (error) {
+        setStatus(error.message || 'QRを読み取れませんでした', true);
+      }
+      if (scanning) requestAnimationFrame(scanFrame);
+    }
+
+    function submitSchedule() {
+      const code = passcode.value.trim();
+      if (!code) {
+        setStatus('管理コードを入力してください', true);
+        return;
+      }
+
+      let schedule;
+      try {
+        schedule = assembleSchedule();
+      } catch (error) {
+        setStatus(error.message || 'QRデータを確認してください', true);
+        return;
+      }
+
+      submitButton.disabled = true;
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = APP_URL;
+
+      [
+        ['action', 'importBreakSchedule'],
+        ['passcode', code],
+        ['schedule', JSON.stringify(schedule)],
+      ].forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    document.querySelector('#start').addEventListener('click', startCamera);
+    document.querySelector('#stop').addEventListener('click', stopCamera);
+    document.querySelector('#clear').addEventListener('click', () => resetImport('クリアしました'));
+    document.querySelector('#submit').addEventListener('click', submitSchedule);
+    document.querySelector('#add-text').addEventListener('click', () => acceptQrText(manual.value));
+    window.addEventListener('pagehide', stopCamera);
+
+    renderParts();
+    setStatus('カメラ開始を押してください');
+  </script>
+</body>
+</html>
