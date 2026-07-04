@@ -248,15 +248,10 @@
     </header>
 
     <section class="box">
-      <div class="field">
-        <label for="passcode">管理コード</label>
-        <input id="passcode" inputmode="numeric" autocomplete="off">
-      </div>
-
       <div class="actions">
         <button class="primary" type="button" id="start">カメラ開始</button>
-        <button type="button" id="stop">停止</button>
-        <button type="button" id="clear">クリア</button>
+        <button type="button" id="stop" disabled>カメラ停止</button>
+        <button type="button" id="clear" disabled>クリア</button>
         <button class="primary" type="button" id="submit" disabled>取り込み</button>
       </div>
 
@@ -275,16 +270,19 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <script>
     const APP_URL = 'https://script.google.com/macros/s/AKfycbw87Eqy8ORFBfj-tsVjFy2NXf6o-YOvabWvzvYjGfZOKg7u6xoHG1ppnhc3Cl9JAQhLVA/exec';
-    const passcode = document.querySelector('#passcode');
     const video = document.querySelector('#video');
     const canvas = document.querySelector('#canvas');
     const parts = document.querySelector('#parts');
     const status = document.querySelector('#status');
     const preview = document.querySelector('#preview');
+    const startButton = document.querySelector('#start');
+    const stopButton = document.querySelector('#stop');
+    const clearButton = document.querySelector('#clear');
     const submitButton = document.querySelector('#submit');
 
     let stream = null;
     let scanning = false;
+    let scheduleReady = false;
     let qrImport = { key: '', week: '', hash: '', total: 0, parts: {} };
     let lastQrText = '';
     let lastQrTextAt = 0;
@@ -319,6 +317,17 @@
 
     function formatMissingParts(missing) {
       return missing.length ? `未読: ${missing.join(', ')}` : '';
+    }
+
+    function hasReadParts() {
+      return Object.keys(qrImport.parts || {}).length > 0;
+    }
+
+    function updateControls() {
+      startButton.disabled = scanning;
+      stopButton.disabled = !scanning;
+      clearButton.disabled = !hasReadParts();
+      submitButton.disabled = !scheduleReady;
     }
 
     function expandBreakWeekPayload(payload) {
@@ -374,10 +383,11 @@
     }
 
     function renderParts() {
+      scheduleReady = false;
       if (!qrImport.total) {
         parts.innerHTML = '<div class="part">未読</div>';
         preview.classList.add('hidden');
-        submitButton.disabled = true;
+        updateControls();
         return;
       }
 
@@ -387,20 +397,20 @@
       }).join('');
 
       const missing = getMissingParts();
-      submitButton.disabled = missing.length > 0;
       if (!missing.length) {
         try {
           const schedule = assembleSchedule();
+          scheduleReady = true;
           preview.textContent = `${schedule.weekStart || qrImport.week} / ${schedule.entries.length}件`;
           preview.classList.remove('hidden');
         } catch (error) {
           preview.classList.add('hidden');
-          submitButton.disabled = true;
           setStatus(error.message || 'QRデータを確認してください', true);
         }
       } else {
         preview.classList.add('hidden');
       }
+      updateControls();
     }
 
     function resetImport(message = '') {
@@ -424,7 +434,7 @@
       }
 
       if (chunk.app !== 'gairai-break-v1') {
-        setStatus('このQRは休憩確認用ではありません', true);
+        setStatus('このQRは勤務表取り込み用ではありません', true);
         return;
       }
 
@@ -477,7 +487,7 @@
         return;
       }
 
-      stopCamera();
+      stopCamera({ silent: true });
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: 'environment' } },
@@ -488,18 +498,25 @@
         scanning = true;
         scanFrame();
         setStatus('カメラを開始しました');
+        updateControls();
       } catch (error) {
+        stopCamera({ silent: true });
         setStatus(error.message || 'カメラを開始できませんでした', true);
       }
     }
 
-    function stopCamera() {
+    function stopCamera(options = {}) {
+      const wasActive = Boolean(scanning || stream);
       scanning = false;
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
         stream = null;
       }
       video.srcObject = null;
+      updateControls();
+      if (wasActive && !options.silent) {
+        setStatus('カメラを停止しました');
+      }
     }
 
     function scanFrame() {
@@ -525,12 +542,6 @@
     }
 
     function submitSchedule() {
-      const code = passcode.value.trim();
-      if (!code) {
-        setStatus('管理コードを入力してください', true);
-        return;
-      }
-
       let schedule;
       try {
         schedule = assembleSchedule();
@@ -540,7 +551,7 @@
       }
 
       submitButton.disabled = true;
-      stopCamera();
+      stopCamera({ silent: true });
       setStatus('取り込み中です。画面を閉じずにお待ちください');
 
       const frameName = 'gairai-import-frame';
@@ -574,7 +585,6 @@
 
       [
         ['action', 'importBreakSchedule'],
-        ['passcode', code],
         ['schedule', JSON.stringify(schedule)],
       ].forEach(([name, value]) => {
         const input = document.createElement('input');
@@ -590,11 +600,11 @@
       setTimeout(finish, 5000);
     }
 
-    document.querySelector('#start').addEventListener('click', startCamera);
-    document.querySelector('#stop').addEventListener('click', stopCamera);
-    document.querySelector('#clear').addEventListener('click', () => resetImport('クリアしました'));
-    document.querySelector('#submit').addEventListener('click', submitSchedule);
-    window.addEventListener('pagehide', stopCamera);
+    startButton.addEventListener('click', startCamera);
+    stopButton.addEventListener('click', stopCamera);
+    clearButton.addEventListener('click', () => resetImport('クリアしました'));
+    submitButton.addEventListener('click', submitSchedule);
+    window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
     renderParts();
     setStatus('カメラ開始を押してください');
