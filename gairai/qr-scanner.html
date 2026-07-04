@@ -34,8 +34,7 @@
     }
 
     button,
-    input,
-    textarea {
+    input {
       font: inherit;
     }
 
@@ -50,11 +49,22 @@
     }
 
     .top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 10px;
       align-items: flex-start;
       margin-bottom: 14px;
+    }
+
+    .close-page {
+      width: 44px;
+      min-height: 44px;
+      padding: 0;
+      border-color: #cbd5e1;
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 1.6rem;
+      line-height: 1;
     }
 
     .sub {
@@ -99,8 +109,7 @@
       font-weight: 900;
     }
 
-    input,
-    textarea {
+    input {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -113,12 +122,6 @@
       min-height: 52px;
       padding: 0 14px;
       font-size: 1.15rem;
-    }
-
-    textarea {
-      min-height: 96px;
-      padding: 12px 14px;
-      resize: vertical;
     }
 
     button,
@@ -241,6 +244,7 @@
 <body>
   <main class="app">
     <header class="top">
+      <button class="close-page" type="button" id="close-page" aria-label="閉じる">×</button>
       <div>
         <p class="sub">外来業務</p>
         <h1>勤務表QR読み取り</h1>
@@ -279,6 +283,7 @@
     const stopButton = document.querySelector('#stop');
     const clearButton = document.querySelector('#clear');
     const submitButton = document.querySelector('#submit');
+    const closeButton = document.querySelector('#close-page');
 
     let stream = null;
     let scanning = false;
@@ -493,15 +498,33 @@
           video: { facingMode: { ideal: 'environment' } },
           audio: false,
         });
+        video.muted = true;
+        video.setAttribute('muted', '');
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
         video.srcObject = stream;
-        await video.play();
         scanning = true;
-        scanFrame();
-        setStatus('カメラを開始しました');
         updateControls();
+        scanFrame();
+        try {
+          await video.play();
+          setStatus('カメラを開始しました');
+        } catch (playError) {
+          setStatus('映像が止まる場合は、黒い枠の中央の再生ボタンを押してください', true);
+        }
       } catch (error) {
         stopCamera({ silent: true });
         setStatus(error.message || 'カメラを開始できませんでした', true);
+      }
+    }
+
+    async function resumeVideo() {
+      if (!stream) return;
+      try {
+        await video.play();
+        setStatus('カメラを開始しました');
+      } catch (error) {
+        setStatus(error.message || '映像を開始できませんでした', true);
       }
     }
 
@@ -600,10 +623,28 @@
       setTimeout(finish, 5000);
     }
 
+    function closePage() {
+      stopCamera({ silent: true });
+      if (window.opener && !window.opener.closed) {
+        window.close();
+        setTimeout(() => {
+          if (!window.closed) window.location.href = APP_URL;
+        }, 150);
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = APP_URL;
+    }
+
     startButton.addEventListener('click', startCamera);
     stopButton.addEventListener('click', stopCamera);
     clearButton.addEventListener('click', () => resetImport('クリアしました'));
     submitButton.addEventListener('click', submitSchedule);
+    closeButton.addEventListener('click', closePage);
+    video.addEventListener('click', resumeVideo);
     window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
     renderParts();
