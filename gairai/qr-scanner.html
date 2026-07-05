@@ -50,14 +50,12 @@
     }
 
     .top {
-      display: grid;
-      grid-template-columns: 48px 1fr;
-      gap: 10px;
-      align-items: flex-start;
+      display: block;
       margin-bottom: 14px;
     }
 
     .close-page {
+      display: none;
       width: 44px;
       min-height: 44px;
       padding: 0;
@@ -77,9 +75,11 @@
 
     h1 {
       margin: 0;
-      font-size: clamp(2rem, 10vw, 3rem);
+      font-size: clamp(1.9rem, 8.8vw, 2.7rem);
       line-height: 1.05;
       letter-spacing: 0;
+      word-break: keep-all;
+      overflow-wrap: normal;
     }
 
     .box {
@@ -253,7 +253,6 @@
 <body>
   <main class="app">
     <header class="top">
-      <button class="close-page" type="button" id="close-page" aria-label="閉じる">×</button>
       <div>
         <p class="sub">外来業務</p>
         <h1>勤務表QR読み取り</h1>
@@ -292,7 +291,6 @@
     const stopButton = document.querySelector('#stop');
     const clearButton = document.querySelector('#clear');
     const submitButton = document.querySelector('#submit');
-    const closeButton = document.querySelector('#close-page');
 
     let stream = null;
     let scanning = false;
@@ -720,27 +718,10 @@
       setTimeout(finish, 5000);
     }
 
-    function closePage() {
-      stopCamera({ silent: true });
-      if (window.opener && !window.opener.closed) {
-        window.close();
-        setTimeout(() => {
-          if (!window.closed) window.location.href = APP_URL;
-        }, 150);
-        return;
-      }
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-      window.location.href = APP_URL;
-    }
-
     startButton.addEventListener('click', startCamera);
     stopButton.addEventListener('click', stopCamera);
     clearButton.addEventListener('click', () => resetImport('クリアしました'));
     submitButton.addEventListener('click', submitSchedule);
-    closeButton.addEventListener('click', closePage);
     video.addEventListener('click', resumeVideo);
     window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
