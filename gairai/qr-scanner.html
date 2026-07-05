@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="ja">
 <head>
@@ -51,11 +50,22 @@
     }
 
     .top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 10px;
       align-items: flex-start;
       margin-bottom: 14px;
+    }
+
+    .close-page {
+      width: 44px;
+      min-height: 44px;
+      padding: 0;
+      border-color: #cbd5e1;
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 1.6rem;
+      line-height: 1;
     }
 
     .sub {
@@ -208,6 +218,7 @@
       padding: 12px 14px;
       font-weight: 900;
       line-height: 1.6;
+      white-space: pre-line;
     }
 
     .hidden {
@@ -242,6 +253,7 @@
 <body>
   <main class="app">
     <header class="top">
+      <button class="close-page" type="button" id="close-page" aria-label="閉じる">×</button>
       <div>
         <p class="sub">外来業務</p>
         <h1>勤務表QR読み取り</h1>
@@ -280,6 +292,7 @@
     const stopButton = document.querySelector('#stop');
     const clearButton = document.querySelector('#clear');
     const submitButton = document.querySelector('#submit');
+    const closeButton = document.querySelector('#close-page');
 
     let stream = null;
     let scanning = false;
@@ -331,12 +344,91 @@
       submitButton.disabled = !scheduleReady;
     }
 
+    function normalizeDateValue(value) {
+      const text = String(value || '').trim();
+      return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+    }
+
+    function normalizeMembers(values) {
+      if (!Array.isArray(values)) return [];
+      const seen = {};
+      return values.map((value) => String(value || '').trim())
+        .filter(Boolean)
+        .filter((value) => {
+          if (seen[value]) return false;
+          seen[value] = true;
+          return true;
+        });
+    }
+
+    function normalizeAttendanceCounts(values) {
+      const result = {};
+      if (!values || typeof values !== 'object' || Array.isArray(values)) return result;
+      Object.keys(values).forEach((key) => {
+        const date = normalizeDateValue(key);
+        const count = Number(values[key]);
+        if (date && Number.isInteger(count) && count >= 0) {
+          result[date] = count;
+        }
+      });
+      return result;
+    }
+
+    function normalizeAttendanceMembers(values, members) {
+      const result = {};
+      if (!values || typeof values !== 'object' || Array.isArray(values)) return result;
+      Object.keys(values).forEach((key) => {
+        const date = normalizeDateValue(key);
+        const list = values[key];
+        if (!date || !Array.isArray(list)) return;
+        const names = list.map((item) => {
+          if (Number.isInteger(item)) return members[item] || '';
+          const numberValue = Number(item);
+          if (String(item).trim() !== '' && Number.isInteger(numberValue)) return members[numberValue] || '';
+          return String(item || '').trim();
+        }).filter(Boolean);
+        if (names.length) result[date] = names;
+      });
+      return result;
+    }
+
+    function validateAttendance(schedule) {
+      const counts = schedule.attendanceCounts || {};
+      const membersByDate = schedule.attendanceMembers || {};
+      Object.keys(membersByDate).forEach((date) => {
+        if (counts[date] !== undefined && Number(counts[date]) !== membersByDate[date].length) {
+          throw new Error(`${date}の出勤予定人数と出勤予定メンバー数が一致しません`);
+        }
+      });
+    }
+
+    function formatSchedulePreview(schedule) {
+      const lines = [
+        `${schedule.weekStart || qrImport.week} / QR ${Object.keys(qrImport.parts).length}/${qrImport.total} / 配置${schedule.entries.length}件`,
+      ];
+      if (Array.isArray(schedule.members) && schedule.members.length) {
+        const months = Array.isArray(schedule.memberMonths) && schedule.memberMonths.length
+          ? `（${schedule.memberMonths.join(', ')}）`
+          : '';
+        lines.push(`月メンバー候補 ${schedule.members.length}名${months}`);
+      }
+      const counts = schedule.attendanceCounts || {};
+      Object.keys(counts).sort().forEach((date) => {
+        lines.push(`${date} 出勤予定 ${counts[date]}名`);
+      });
+      return lines.join('\n');
+    }
+
     function expandBreakWeekPayload(payload) {
       if (payload && payload.app === 'gairai-break-week-v1' && Array.isArray(payload.entries)) {
         return {
           importId: payload.importId || payload.weekStart || qrImport.week,
           weekStart: payload.weekStart || qrImport.week,
           entries: payload.entries,
+          members: normalizeMembers(payload.members || []),
+          memberMonths: Array.isArray(payload.memberMonths) ? payload.memberMonths.map((value) => String(value || '').trim()).filter(Boolean) : [],
+          attendanceCounts: normalizeAttendanceCounts(payload.attendanceCounts || {}),
+          attendanceMembers: normalizeAttendanceMembers(payload.attendanceMembers || {}, normalizeMembers(payload.members || [])),
         };
       }
 
@@ -348,6 +440,9 @@
         throw new Error('勤務表QRのデータを確認してください');
       }
 
+      const members = normalizeMembers(payload.members || []);
+      const attendanceCounts = normalizeAttendanceCounts(payload.attendanceCounts || {});
+      const attendanceMembers = normalizeAttendanceMembers(payload.attendanceMembers || {}, members);
       const entries = payload.e.map((row, index) => {
         const dateIndex = Number(row && row[0]);
         const locationIndex = Number(row && row[1]);
@@ -368,6 +463,10 @@
         importId: payload.i || payload.w || qrImport.week,
         weekStart: payload.w || qrImport.week,
         entries,
+        members,
+        memberMonths: Array.isArray(payload.memberMonths) ? payload.memberMonths.map((value) => String(value || '').trim()).filter(Boolean) : [],
+        attendanceCounts,
+        attendanceMembers,
       };
     }
 
@@ -380,7 +479,9 @@
       if (!data || checksumText(data) !== qrImport.hash) {
         throw new Error('QRデータの確認に失敗しました');
       }
-      return expandBreakWeekPayload(JSON.parse(base64UrlDecode(data)));
+      const schedule = expandBreakWeekPayload(JSON.parse(base64UrlDecode(data)));
+      validateAttendance(schedule);
+      return schedule;
     }
 
     function renderParts() {
@@ -402,7 +503,7 @@
         try {
           const schedule = assembleSchedule();
           scheduleReady = true;
-          preview.textContent = `${schedule.weekStart || qrImport.week} / ${schedule.entries.length}件`;
+          preview.textContent = formatSchedulePreview(schedule);
           preview.classList.remove('hidden');
         } catch (error) {
           preview.classList.add('hidden');
@@ -494,15 +595,33 @@
           video: { facingMode: { ideal: 'environment' } },
           audio: false,
         });
+        video.muted = true;
+        video.setAttribute('muted', '');
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
         video.srcObject = stream;
-        await video.play();
         scanning = true;
-        scanFrame();
-        setStatus('カメラを開始しました');
         updateControls();
+        scanFrame();
+        try {
+          await video.play();
+          setStatus('カメラを開始しました');
+        } catch (playError) {
+          setStatus('映像が止まる場合は、黒い枠の中央の再生ボタンを押してください', true);
+        }
       } catch (error) {
         stopCamera({ silent: true });
         setStatus(error.message || 'カメラを開始できませんでした', true);
+      }
+    }
+
+    async function resumeVideo() {
+      if (!stream) return;
+      try {
+        await video.play();
+        setStatus('カメラを開始しました');
+      } catch (error) {
+        setStatus(error.message || '映像を開始できませんでした', true);
       }
     }
 
@@ -601,10 +720,28 @@
       setTimeout(finish, 5000);
     }
 
+    function closePage() {
+      stopCamera({ silent: true });
+      if (window.opener && !window.opener.closed) {
+        window.close();
+        setTimeout(() => {
+          if (!window.closed) window.location.href = APP_URL;
+        }, 150);
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = APP_URL;
+    }
+
     startButton.addEventListener('click', startCamera);
     stopButton.addEventListener('click', stopCamera);
     clearButton.addEventListener('click', () => resetImport('クリアしました'));
     submitButton.addEventListener('click', submitSchedule);
+    closeButton.addEventListener('click', closePage);
+    video.addEventListener('click', resumeVideo);
     window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
     renderParts();
