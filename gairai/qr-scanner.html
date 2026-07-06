@@ -50,20 +50,20 @@
     }
 
     .top {
-      display: block;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
       margin-bottom: 14px;
     }
 
-    .close-page {
-      display: none;
-      width: 44px;
-      min-height: 44px;
-      padding: 0;
+    .back-page {
+      min-height: 40px;
+      padding: 0 12px;
       border-color: #cbd5e1;
-      border-radius: 999px;
-      color: var(--ink);
-      font-size: 1.6rem;
-      line-height: 1;
+      color: var(--accent);
+      font-size: 0.95rem;
+      white-space: nowrap;
     }
 
     .sub {
@@ -235,6 +235,17 @@
     }
 
     @media (max-width: 430px) {
+      .top {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+      }
+
+      .back-page {
+        min-height: 38px;
+        padding: 0 10px;
+        font-size: 0.88rem;
+      }
+
       .box {
         padding: 14px;
       }
@@ -257,6 +268,7 @@
         <p class="sub">外来業務</p>
         <h1>勤務表QR読み取り</h1>
       </div>
+      <button class="back-page" type="button" id="back">戻る</button>
     </header>
 
     <section class="box">
@@ -291,6 +303,7 @@
     const stopButton = document.querySelector('#stop');
     const clearButton = document.querySelector('#clear');
     const submitButton = document.querySelector('#submit');
+    const backButton = document.querySelector('#back');
 
     let stream = null;
     let scanning = false;
@@ -687,7 +700,7 @@
       const finish = () => {
         if (finished) return;
         finished = true;
-        setStatus('取り込みました。左上の×で閉じてください');
+        setStatus('取り込みました。戻るボタン、または左上の×で閉じてください');
       };
 
       frame.addEventListener('load', () => {
@@ -718,10 +731,16 @@
       setTimeout(finish, 5000);
     }
 
+    function backToApp() {
+      stopCamera({ silent: true });
+      window.location.href = APP_URL;
+    }
+
     startButton.addEventListener('click', startCamera);
     stopButton.addEventListener('click', stopCamera);
     clearButton.addEventListener('click', () => resetImport('クリアしました'));
     submitButton.addEventListener('click', submitSchedule);
+    backButton.addEventListener('click', backToApp);
     video.addEventListener('click', resumeVideo);
     window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
