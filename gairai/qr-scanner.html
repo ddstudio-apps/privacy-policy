@@ -471,6 +471,19 @@
           sort: index + 1,
         };
       }).filter((row) => row.date && row.location && row.member);
+      const displayNotes = Array.isArray(payload.r)
+        ? payload.r.map((row, index) => {
+          const dateIndex = Number(row && row[0]);
+          const locationIndex = Number(row && row[1]);
+          return {
+            date: String(payload.d[dateIndex] || ''),
+            location: String(payload.l[locationIndex] || ''),
+            text: String(row && row[2] || '').trim(),
+            kind: '補足',
+            sort: entries.length + index + 1,
+          };
+        }).filter((row) => row.date && row.location && row.text)
+        : [];
 
       if (!entries.length) {
         throw new Error('取り込める勤務表データがありません');
@@ -484,6 +497,7 @@
         memberMonths: Array.isArray(payload.memberMonths) ? payload.memberMonths.map((value) => String(value || '').trim()).filter(Boolean) : [],
         attendanceCounts,
         attendanceMembers,
+        displayNotes,
       };
     }
 
