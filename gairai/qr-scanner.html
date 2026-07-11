@@ -310,13 +310,44 @@
     const clearButton = document.querySelector('#clear');
     const submitButton = document.querySelector('#submit');
     const backButton = document.querySelector('#back');
+    const QR_IMPORT_STORAGE_KEY = 'gairai-break-week-qr-import-v1';
 
     let stream = null;
     let scanning = false;
     let scheduleReady = false;
-    let qrImport = { key: '', week: '', hash: '', total: 0, parts: {} };
+    let qrImport = loadQrImportState();
     let lastQrText = '';
     let lastQrTextAt = 0;
+
+    function emptyQrImportState() {
+      return { key: '', week: '', hash: '', total: 0, parts: {} };
+    }
+
+    function loadQrImportState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(QR_IMPORT_STORAGE_KEY) || 'null');
+        if (!saved || typeof saved !== 'object' || !Number(saved.total) || !saved.parts || typeof saved.parts !== 'object') {
+          return emptyQrImportState();
+        }
+        return {
+          key: String(saved.key || ''),
+          week: String(saved.week || ''),
+          hash: String(saved.hash || ''),
+          total: Number(saved.total),
+          parts: saved.parts,
+        };
+      } catch (error) {
+        return emptyQrImportState();
+      }
+    }
+
+    function saveQrImportState() {
+      try {
+        localStorage.setItem(QR_IMPORT_STORAGE_KEY, JSON.stringify(qrImport));
+      } catch (error) {
+        // Continue reading even when private browsing prevents storage.
+      }
+    }
 
     function setStatus(message, warn = false) {
       status.textContent = message;
@@ -523,9 +554,7 @@
       if (!data || checksumText(data) !== qrImport.hash) {
         throw new Error('QRデータの確認に失敗しました');
       }
-      const schedule = expandBreakWeekPayload(JSON.parse(base64UrlDecode(data)));
-      validateAttendance(schedule);
-      return schedule;
+      return expandBreakWeekPayload(JSON.parse(base64UrlDecode(data)));
     }
 
     function renderParts() {
@@ -560,7 +589,12 @@
     }
 
     function resetImport(message = '') {
-      qrImport = { key: '', week: '', hash: '', total: 0, parts: {} };
+      qrImport = emptyQrImportState();
+      try {
+        localStorage.removeItem(QR_IMPORT_STORAGE_KEY);
+      } catch (error) {
+        // Continue even when private browsing prevents storage.
+      }
       lastQrText = '';
       lastQrTextAt = 0;
       renderParts();
@@ -602,6 +636,7 @@
         qrImport = { key, week, hash, total, parts: {} };
       }
       qrImport.parts[part] = data;
+      saveQrImportState();
       renderParts();
 
       const missing = getMissingParts();
@@ -781,7 +816,13 @@
     window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
     renderParts();
-    setStatus('カメラ開始を押してください');
+    if (scheduleReady) {
+      setStatus('前回読み取ったQRを復元しました。取り込みできます');
+    } else if (hasReadParts()) {
+      setStatus(`前回のQRを復元しました（${formatMissingParts(getMissingParts())}）`);
+    } else {
+      setStatus('カメラ開始を押してください');
+    }
   </script>
 </body>
 </html>
