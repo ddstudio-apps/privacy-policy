@@ -410,26 +410,11 @@
     }
 
     function validateAttendance(schedule) {
-      const groups = [
-        ['登録人数', schedule.registeredCounts || {}, '登録メンバー数', schedule.registeredMembers || {}],
-        ['出勤予定人数', schedule.attendanceCounts || {}, '出勤予定メンバー数', schedule.attendanceMembers || {}],
-        ['休み人数', schedule.offCounts || {}, '休みメンバー数', schedule.offMembers || {}],
-      ];
-      groups.forEach(([countLabel, counts, memberLabel, membersByDate]) => {
-        Object.keys(membersByDate).forEach((date) => {
-          if (counts[date] !== undefined && Number(counts[date]) !== membersByDate[date].length) {
-            throw new Error(`${date}の${countLabel}と${memberLabel}が一致しません`);
-          }
-        });
-      });
-
-      const registeredCounts = schedule.registeredCounts || {};
-      const attendanceCounts = schedule.attendanceCounts || {};
-      const offCounts = schedule.offCounts || {};
-      Object.keys(registeredCounts).forEach((date) => {
-        if (attendanceCounts[date] === undefined || offCounts[date] === undefined) return;
-        if (Number(registeredCounts[date]) !== Number(attendanceCounts[date]) + Number(offCounts[date])) {
-          throw new Error(`${date}の登録人数と出勤・休み人数が一致しません`);
+      const counts = schedule.attendanceCounts || {};
+      const membersByDate = schedule.attendanceMembers || {};
+      Object.keys(membersByDate).forEach((date) => {
+        if (counts[date] !== undefined && Number(counts[date]) !== membersByDate[date].length) {
+          throw new Error(`${date}の出勤予定人数と出勤予定メンバー数が一致しません`);
         }
       });
     }
@@ -620,9 +605,11 @@
       renderParts();
 
       const missing = getMissingParts();
-      setStatus(missing.length
-        ? `QR ${Object.keys(qrImport.parts).length}/${qrImport.total} を読み取りました（${formatMissingParts(missing)}）`
-        : 'すべて読み取りました。取り込みできます');
+      if (missing.length) {
+        setStatus(`QR ${Object.keys(qrImport.parts).length}/${qrImport.total} を読み取りました（${formatMissingParts(missing)}）`);
+      } else if (scheduleReady) {
+        setStatus('すべて読み取りました。取り込みできます');
+      }
 
       if (navigator.vibrate) {
         navigator.vibrate(missing.length ? 40 : [50, 60, 50]);
