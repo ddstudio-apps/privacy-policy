@@ -410,11 +410,26 @@
     }
 
     function validateAttendance(schedule) {
-      const counts = schedule.attendanceCounts || {};
-      const membersByDate = schedule.attendanceMembers || {};
-      Object.keys(membersByDate).forEach((date) => {
-        if (counts[date] !== undefined && Number(counts[date]) !== membersByDate[date].length) {
-          throw new Error(`${date}の出勤予定人数と出勤予定メンバー数が一致しません`);
+      const groups = [
+        ['登録人数', schedule.registeredCounts || {}, '登録メンバー数', schedule.registeredMembers || {}],
+        ['出勤予定人数', schedule.attendanceCounts || {}, '出勤予定メンバー数', schedule.attendanceMembers || {}],
+        ['休み人数', schedule.offCounts || {}, '休みメンバー数', schedule.offMembers || {}],
+      ];
+      groups.forEach(([countLabel, counts, memberLabel, membersByDate]) => {
+        Object.keys(membersByDate).forEach((date) => {
+          if (counts[date] !== undefined && Number(counts[date]) !== membersByDate[date].length) {
+            throw new Error(`${date}の${countLabel}と${memberLabel}が一致しません`);
+          }
+        });
+      });
+
+      const registeredCounts = schedule.registeredCounts || {};
+      const attendanceCounts = schedule.attendanceCounts || {};
+      const offCounts = schedule.offCounts || {};
+      Object.keys(registeredCounts).forEach((date) => {
+        if (attendanceCounts[date] === undefined || offCounts[date] === undefined) return;
+        if (Number(registeredCounts[date]) !== Number(attendanceCounts[date]) + Number(offCounts[date])) {
+          throw new Error(`${date}の登録人数と出勤・休み人数が一致しません`);
         }
       });
     }
@@ -438,14 +453,19 @@
 
     function expandBreakWeekPayload(payload) {
       if (payload && payload.app === 'gairai-break-week-v1' && Array.isArray(payload.entries)) {
+        const members = normalizeMembers(payload.members || []);
         return {
           importId: payload.importId || payload.weekStart || qrImport.week,
           weekStart: payload.weekStart || qrImport.week,
           entries: payload.entries,
-          members: normalizeMembers(payload.members || []),
+          members,
           memberMonths: Array.isArray(payload.memberMonths) ? payload.memberMonths.map((value) => String(value || '').trim()).filter(Boolean) : [],
+          registeredCounts: normalizeAttendanceCounts(payload.registeredCounts || {}),
           attendanceCounts: normalizeAttendanceCounts(payload.attendanceCounts || {}),
-          attendanceMembers: normalizeAttendanceMembers(payload.attendanceMembers || {}, normalizeMembers(payload.members || [])),
+          offCounts: normalizeAttendanceCounts(payload.offCounts || {}),
+          registeredMembers: normalizeAttendanceMembers(payload.registeredMembers || {}, members),
+          attendanceMembers: normalizeAttendanceMembers(payload.attendanceMembers || {}, members),
+          offMembers: normalizeAttendanceMembers(payload.offMembers || {}, members),
         };
       }
 
@@ -458,8 +478,12 @@
       }
 
       const members = normalizeMembers(payload.members || []);
+      const registeredCounts = normalizeAttendanceCounts(payload.registeredCounts || {});
       const attendanceCounts = normalizeAttendanceCounts(payload.attendanceCounts || {});
+      const offCounts = normalizeAttendanceCounts(payload.offCounts || {});
+      const registeredMembers = normalizeAttendanceMembers(payload.registeredMembers || {}, members);
       const attendanceMembers = normalizeAttendanceMembers(payload.attendanceMembers || {}, members);
+      const offMembers = normalizeAttendanceMembers(payload.offMembers || {}, members);
       const entries = payload.e.map((row, index) => {
         const dateIndex = Number(row && row[0]);
         const locationIndex = Number(row && row[1]);
@@ -495,8 +519,12 @@
         entries,
         members,
         memberMonths: Array.isArray(payload.memberMonths) ? payload.memberMonths.map((value) => String(value || '').trim()).filter(Boolean) : [],
+        registeredCounts,
         attendanceCounts,
+        offCounts,
+        registeredMembers,
         attendanceMembers,
+        offMembers,
         displayNotes,
       };
     }
