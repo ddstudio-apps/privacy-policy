@@ -385,11 +385,15 @@
       return Object.keys(qrImport.parts || {}).length > 0;
     }
 
+    function allPartsRead() {
+      return Number(qrImport.total) > 0 && getMissingParts().length === 0;
+    }
+
     function updateControls() {
       startButton.disabled = scanning;
       stopButton.disabled = !scanning;
       clearButton.disabled = !hasReadParts();
-      submitButton.disabled = !scheduleReady;
+      submitButton.disabled = !allPartsRead();
     }
 
     function normalizeDateValue(value) {
@@ -580,7 +584,7 @@
           preview.classList.remove('hidden');
         } catch (error) {
           preview.classList.add('hidden');
-          setStatus(error.message || 'QRデータを確認してください', true);
+          setStatus('読み取りは完了しています。取り込みを押してください', false);
         }
       } else {
         preview.classList.add('hidden');
@@ -642,7 +646,7 @@
       const missing = getMissingParts();
       if (missing.length) {
         setStatus(`QR ${Object.keys(qrImport.parts).length}/${qrImport.total} を読み取りました（${formatMissingParts(missing)}）`);
-      } else if (scheduleReady) {
+      } else {
         setStatus('すべて読み取りました。取り込みできます');
       }
 
@@ -747,7 +751,8 @@
       try {
         schedule = assembleSchedule();
       } catch (error) {
-        setStatus(error.message || 'QRデータを確認してください', true);
+        setStatus('取り込み処理に失敗しました。読み取り内容は保持されています', true);
+        updateControls();
         return;
       }
 
@@ -816,7 +821,7 @@
     window.addEventListener('pagehide', () => stopCamera({ silent: true }));
 
     renderParts();
-    if (scheduleReady) {
+    if (allPartsRead()) {
       setStatus('前回読み取ったQRを復元しました。取り込みできます');
     } else if (hasReadParts()) {
       setStatus(`前回のQRを復元しました（${formatMissingParts(getMissingParts())}）`);
