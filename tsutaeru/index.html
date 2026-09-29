@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f7f8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>つたえる</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17313c;
+      --muted: #50636a;
+      --line: #c8d5d9;
+      --paper: #ffffff;
+      --background: #f5f7f8;
+      --blue: #17627b;
+      --blue-dark: #0f4b60;
+      --blue-soft: #e8f3f7;
+      --red-soft: #fff1ed;
+      --red: #a83a24;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; width: 100%; height: 100%; }
+
+    body {
+      background: var(--background);
+      color: var(--ink);
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+
+    button { font: inherit; cursor: pointer; touch-action: manipulation; }
+    button:focus-visible { outline: 4px solid #f2a44b; outline-offset: 2px; }
+
+    .app {
+      height: 100vh;
+      height: 100dvh;
+      min-height: 600px;
+      max-width: 1600px;
+      margin: auto;
+      padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      overflow: hidden;
+    }
+
+    .message-panel {
+      background: var(--paper);
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      min-height: 128px;
+      flex: 1 1 150px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 165px;
+      overflow: hidden;
+    }
+
+    .message-display {
+      padding: 16px 19px;
+      font-size: clamp(36px, 4.5vw, 58px);
+      font-weight: 750;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: pre-wrap;
+    }
+
+    .message-display.long { font-size: clamp(29px, 3.4vw, 42px); }
+    .message-display.empty { color: #74868c; font-weight: 600; }
+
+    .message-actions {
+      padding: 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 2px solid var(--line);
+      background: #fbfcfc;
+    }
+
+    .message-actions button {
+      flex: 1;
+      min-height: 48px;
+      border-radius: 11px;
+      border: 2px solid var(--blue);
+      background: var(--blue);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .message-actions .show-button { background: var(--paper); color: var(--blue-dark); }
+    .message-actions button:active { transform: scale(.98); }
+
+    .phrases { flex: 0 0 auto; min-height: 0; }
+    .category-tabs {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .category-tab {
+      height: 42px;
+      padding: 0 3px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .category-tab[aria-selected="true"] { background: var(--blue); color: white; border-color: var(--blue); }
+
+    .phrase-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+
+    .phrase-button {
+      min-width: 0;
+      min-height: 49px;
+      padding: 5px 8px;
+      border: 1.5px solid #b9cdd4;
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: clamp(16px, 1.95vw, 21px);
+      font-weight: 750;
+      line-height: 1.2;
+    }
+
+    .phrase-button.urgent { border-color: #e3a798; background: var(--red-soft); color: #842c1d; }
+    .phrase-button:active { background: var(--blue-soft); }
+
+    .keyboard { flex: 0 0 auto; min-height: 0; }
+    .keyboard-head {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .keyboard-head span { color: var(--muted); }
+    .speak-letters {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 31px;
+      padding: 3px 10px;
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .speak-letters[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
+    .speak-letters .switch-mark { font-size: 20px; line-height: 1; color: var(--blue); }
+
+    .keys { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+
+    .key {
+      min-width: 0;
+      height: clamp(58px, 8vh, 82px);
+      padding: 0 2px;
+      border: 1.5px solid #b5c8cf;
+      border-bottom-width: 3px;
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: clamp(25px, 3.2vw, 35px);
+      font-weight: 750;
+      line-height: 1;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .key:active { background: var(--blue-soft); border-bottom-width: 1.5px; }
+    .key.blank { visibility: hidden; pointer-events: none; }
+    .key.action { background: #e9eff2; font-size: clamp(15px, 1.9vw, 20px); }
+    .key.backspace { background: #dfeaf0; }
+    .key.clear { background: #f7e8e3; color: #852c1b; border-color: #e2b7aa; }
+
+    .status { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
+    .full-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: #fff;
+      padding: max(20px, env(safe-area-inset-top)) max(25px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(25px, env(safe-area-inset-left));
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .full-screen[hidden] { display: none; }
+    .full-screen-text { flex: 1; display: flex; align-items: center; justify-content: center; overflow-y: auto; text-align: center; font-size: clamp(48px, 6vw, 95px); font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .full-screen-text.long { font-size: clamp(36px, 4.5vw, 65px); }
+    .full-screen-actions { display: flex; justify-content: center; gap: 12px; }
+    .full-screen-actions button { min-width: 160px; min-height: 60px; border: 2px solid var(--blue); border-radius: 12px; background: var(--paper); color: var(--blue-dark); font-size: 23px; font-weight: 800; }
+    .full-screen-actions .read-again { background: var(--blue); color: white; }
+
+    @media (max-width: 800px) {
+      .message-panel { grid-template-columns: minmax(0, 1fr) 145px; }
+      .message-actions button { font-size: 19px; }
+      .category-tab { font-size: 15px; }
+      .phrase-button { font-size: 17px; }
+      .keys { gap: 4px; }
+      .key.action { font-size: 15px; }
+    }
+
+    @media (max-height: 700px) {
+      .app { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+      .message-panel { min-height: 100px; }
+      .category-tab { height: 37px; }
+      .phrase-button { min-height: 44px; }
+      .keyboard-head { min-height: 28px; }
+      .key { height: clamp(46px, 8vh, 58px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="message-panel" aria-label="伝える言葉">
+      <div id="message" class="message-display empty" aria-live="polite">ここに言葉が出ます</div>
+      <div class="message-actions">
+        <button id="readButton" type="button">読み上げ</button>
+        <button id="showButton" class="show-button" type="button">大きく見せる</button>
+      </div>
+    </section>
+
+    <section class="phrases" aria-label="よく使う言葉">
+      <div id="categoryTabs" class="category-tabs" role="tablist" aria-label="言葉の種類"></div>
+      <div id="phraseGrid" class="phrase-grid" role="tabpanel" aria-label="選んだ種類の言葉"></div>
+    </section>
+
+    <section class="keyboard" aria-label="50音で入力">
+      <div class="keyboard-head">
+        <span>文字を押して文章を作る</span>
+        <button id="letterMode" class="speak-letters" type="button" aria-pressed="false"><span class="switch-mark" aria-hidden="true">□</span>文字も読む：切</button>
+      </div>
+      <div id="keys" class="keys"></div>
+    </section>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </main>
+
+  <section id="fullScreen" class="full-screen" aria-label="大きく見せる画面" hidden>
+    <div id="fullScreenText" class="full-screen-text"></div>
+    <div class="full-screen-actions">
+      <button id="closeFullScreen" type="button">もどる</button>
+      <button id="readAgain" class="read-again" type="button">読み上げ</button>
+    </div>
+  </section>
+
+  <script>
+    'use strict';
+
+    const categories = [
+      { label: 'まず', phrases: [
+        'はい', 'いいえ', 'わかりません', '少し待ってください',
+        'もう一度お願いします', '看護師さんを呼んでください', '苦しいです', '痛いです'
+      ]},
+      { label: '呼吸', phrases: [
+        '息が苦しいです', '痰がからんでいます', '吸引してください', '咳が出ます',
+        '痰が出せません', '呼吸がしづらいです', 'のど元を見てください', 'すぐ来てください'
+      ]},
+      { label: '痛み', phrases: [
+        '首が痛いです', '耳が痛いです', '頭が痛いです', 'お腹が痛いです',
+        '傷が痛いです', '痛み止めがほしいです', '気持ちが悪いです', 'めまいがします'
+      ]},
+      { label: '姿勢', phrases: [
+        '起こしてください', '横になりたいです', '体の向きを変えてください', '枕を直してください',
+        'トイレに行きたいです', '寒いです', '暑いです', '眠れません'
+      ]},
+      { label: '口・食事', phrases: [
+        '口が乾きます', '口の中をきれいにしてください', 'つばがたまっています', 'うがいできますか',
+        '飲んでもよいですか', '食べてもよいですか', 'お腹がすきました', '吐きそうです'
+      ]},
+      { label: '気持ち', phrases: [
+        '不安です', 'こわいです', '一人にしないでください', '少し休みたいです',
+        '大丈夫です', '安心しました', 'ありがとうございます', '助かりました'
+      ]},
+      { label: '説明', phrases: [
+        'ゆっくり話してください', 'もう一度説明してください', '紙に書いてください', '選択肢を示してください',
+        '今どうなっていますか', '次は何をしますか', 'いつまで続きますか', '先生と話したいです'
+      ]},
+      { label: '家族', phrases: [
+        '家族を呼んでください', '家族に連絡してください', '家族と会いたいです', '家族はどこにいますか',
+        '伝えてほしいことがあります', '家に帰りたいです', '今何時ですか', '今日は何日ですか'
+      ]}
+    ];
+
+    const columns = [
+      ['あ', 'い', 'う', 'え', 'お'],
+      ['か', 'き', 'く', 'け', 'こ'],
+      ['さ', 'し', 'す', 'せ', 'そ'],
+      ['た', 'ち', 'つ', 'て', 'と'],
+      ['な', 'に', 'ぬ', 'ね', 'の'],
+      ['は', 'ひ', 'ふ', 'へ', 'ほ'],
+      ['ま', 'み', 'む', 'め', 'も'],
+      ['や', '', 'ゆ', '', 'よ'],
+      ['ら', 'り', 'る', 'れ', 'ろ'],
+      ['わ', 'を', 'ん', '', '']
+    ];
+
+    const voiced = Object.fromEntries([... 'かきくけこさしすせそたちつてとはひふへほ'].map((letter, index) => [letter, [... 'がぎぐげござじずぜぞだぢづでどばびぶべぼ'][index]]));
+    const semiVoiced = Object.fromEntries([... 'はひふへほ'].map((letter, index) => [letter, [... 'ぱぴぷぺぽ'][index]]));
+    const small = { あ: 'ぁ', い: 'ぃ', う: 'ぅ', え: 'ぇ', お: 'ぉ', つ: 'っ', や: 'ゃ', ゆ: 'ゅ', よ: 'ょ', わ: 'ゎ' };
+    const reverseMap = map => Object.fromEntries(Object.entries(map).map(([a, b]) => [b, a]));
+    const reverseVoiced = reverseMap(voiced);
+    const reverseSemiVoiced = reverseMap(semiVoiced);
+    const reverseSmall = reverseMap(small);
+
+    const messageElement = document.getElementById('message');
+    const fullScreen = document.getElementById('fullScreen');
+    const fullScreenText = document.getElementById('fullScreenText');
+    const statusElement = document.getElementById('status');
+    const letterModeButton = document.getElementById('letterMode');
+    let message = '';
+    let currentCategory = 0;
+    let readLetters = false;
+    let currentUtterance = null;
+
+    function setStatus(text) { statusElement.textContent = text; }
+
+    function updateMessage() {
+      messageElement.textContent = message || 'ここに言葉が出ます';
+      messageElement.classList.toggle('empty', !message);
+      messageElement.classList.toggle('long', message.length > 28);
+      fullScreenText.textContent = message;
+      fullScreenText.classList.toggle('long', message.length > 28);
+      messageElement.scrollTop = messageElement.scrollHeight;
+    }
+
+    function stopSpeaking() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      currentUtterance = null;
+    }
+
+    function speak(text) {
+      if (!text) { setStatus('文字を選んでください'); return; }
+      if (!('speechSynthesis' in window)) {
+        setStatus('このiPadでは読み上げが使えません。画面の文字を見せてください');
+        return;
+      }
+      stopSpeaking();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.88;
+      utterance.volume = 1;
+      const japaneseVoice = window.speechSynthesis.getVoices().find(voice => voice.lang.toLowerCase().startsWith('ja'));
+      if (japaneseVoice) utterance.voice = japaneseVoice;
+      utterance.onstart = () => setStatus('読み上げています');
+      utterance.onend = () => { currentUtterance = null; setStatus('読み上げが終わりました'); };
+      utterance.onerror = event => {
+        currentUtterance = null;
+        if (event.error !== 'canceled' && event.error !== 'interrupted') setStatus('読み上げできませんでした。画面の文字を見せてください');
+      };
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function addLetter(letter) {
+      message += letter;
+      updateMessage();
+      if (readLetters) speak(letter);
+    }
+
+    function changeLast(map, reverse) {
+      if (!message) return;
+      const last = message.slice(-1);
+      const changed = map[last] || reverse[last];
+      if (!changed) return;
+      message = message.slice(0, -1) + changed;
+      updateMessage();
+      if (readLetters) speak(changed);
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categoryTabs');
+      container.replaceChildren();
+      categories.forEach((category, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'category-tab';
+        button.textContent = category.label;
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(index === currentCategory));
+        button.addEventListener('click', () => {
+          currentCategory = index;
+          renderCategories();
+          renderPhrases();
+        });
+        container.append(button);
+      });
+    }
+
+    function renderPhrases() {
+      const container = document.getElementById('phraseGrid');
+      container.replaceChildren();
+      categories[currentCategory].phrases.forEach(phrase => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'phrase-button';
+        if (['苦しいです', '息が苦しいです', '痰が出せません', 'すぐ来てください', '看護師さんを呼んでください'].includes(phrase)) button.classList.add('urgent');
+        button.textContent = phrase;
+        button.addEventListener('click', () => {
+          message = phrase;
+          updateMessage();
+          speak(phrase);
+        });
+        container.append(button);
+      });
+    }
+
+    function renderKeyboard() {
+      const container = document.getElementById('keys');
+      for (let row = 0; row < 5; row++) {
+        for (const column of columns) {
+          const letter = column[row];
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = letter ? 'key' : 'key blank';
+          button.textContent = letter;
+          button.disabled = !letter;
+          if (letter) button.addEventListener('click', () => addLetter(letter));
+          container.append(button);
+        }
+      }
+      const actions = [
+        ['゛', 'voiced'], ['゜', 'semi'], ['小文字', 'small'], ['ー', 'ー'], ['、', '、'],
+        ['。', '。'], ['？', '？'], ['空白', ' '], ['一字消す', 'backspace'], ['全部消す', 'clear']
+      ];
+      actions.forEach(([label, action]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'key action';
+        if (action === 'backspace') button.classList.add('backspace');
+        if (action === 'clear') button.classList.add('clear');
+        button.textContent = label;
+        button.addEventListener('click', () => {
+          if (action === 'voiced') changeLast(voiced, reverseVoiced);
+          else if (action === 'semi') changeLast(semiVoiced, reverseSemiVoiced);
+          else if (action === 'small') changeLast(small, reverseSmall);
+          else if (action === 'backspace') { message = message.slice(0, -1); updateMessage(); }
+          else if (action === 'clear') {
+            if (!message) return;
+            if (window.confirm('書いた文章を全部消しますか？')) { stopSpeaking(); message = ''; updateMessage(); }
+          } else addLetter(action);
+        });
+        container.append(button);
+      });
+    }
+
+    document.getElementById('readButton').addEventListener('click', () => speak(message));
+    document.getElementById('readAgain').addEventListener('click', () => speak(message));
+    document.getElementById('showButton').addEventListener('click', () => {
+      if (!message) { setStatus('文字を選んでください'); return; }
+      fullScreen.hidden = false;
+      document.getElementById('closeFullScreen').focus();
+    });
+    document.getElementById('closeFullScreen').addEventListener('click', () => {
+      fullScreen.hidden = true;
+      document.getElementById('showButton').focus();
+    });
+    letterModeButton.addEventListener('click', () => {
+      readLetters = !readLetters;
+      letterModeButton.setAttribute('aria-pressed', String(readLetters));
+      letterModeButton.innerHTML = '<span class="switch-mark" aria-hidden="true">' + (readLetters ? '☑' : '□') + '</span>文字も読む：' + (readLetters ? '入' : '切');
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
+
+    renderCategories();
+    renderPhrases();
+    renderKeyboard();
+    updateMessage();
+  </script>
+</body>
+</html>
