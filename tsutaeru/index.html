@@ -192,6 +192,7 @@
     .voice-close { align-self: stretch; background: var(--blue); border-color: var(--blue); color: white; }
 
     .keys { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
+    .keys.candidates { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 
     .key {
       min-width: 0;
@@ -214,6 +215,7 @@
     .key.action { background: #e9eff2; font-size: clamp(15px, 1.9vw, 20px); }
     .key.backspace { background: #dfeaf0; }
     .key.clear { background: #f7e8e3; color: #852c1b; border-color: #e2b7aa; }
+    .key.return { grid-column: 1 / -1; background: var(--blue-soft); color: var(--blue-dark); font-size: 23px; }
 
     .status { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
@@ -273,7 +275,7 @@
 
     <section class="keyboard" aria-label="50音で入力">
       <div class="keyboard-head">
-        <span>文字を押して文章を作る</span>
+        <span id="keyboardHint">文字を押して文章を作る</span>
         <div class="keyboard-tools">
           <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
           <button id="letterMode" class="speak-letters" type="button" aria-pressed="false"><span class="switch-mark" aria-hidden="true">□</span>文字も読む：切</button>
@@ -352,13 +354,11 @@
       ['わ', 'を', 'ん', '', '']
     ];
 
-    const voiced = Object.fromEntries([... 'かきくけこさしすせそたちつてとはひふへほ'].map((letter, index) => [letter, [... 'がぎぐげござじずぜぞだぢづでどばびぶべぼ'][index]]));
-    const semiVoiced = Object.fromEntries([... 'はひふへほ'].map((letter, index) => [letter, [... 'ぱぴぷぺぽ'][index]]));
-    const small = { あ: 'ぁ', い: 'ぃ', う: 'ぅ', え: 'ぇ', お: 'ぉ', つ: 'っ', や: 'ゃ', ゆ: 'ゅ', よ: 'ょ', わ: 'ゎ' };
-    const reverseMap = map => Object.fromEntries(Object.entries(map).map(([a, b]) => [b, a]));
-    const reverseVoiced = reverseMap(voiced);
-    const reverseSemiVoiced = reverseMap(semiVoiced);
-    const reverseSmall = reverseMap(small);
+    const candidateGroups = {
+      voiced: { label: '゛のつく文字を選ぶ', letters: [...'がぎぐげござじずぜぞだぢづでどばびぶべぼ'] },
+      semi: { label: '゜のつく文字を選ぶ', letters: [...'ぱぴぷぺぽ'] },
+      small: { label: '小さい文字を選ぶ', letters: [...'ぁぃぅぇぉっゃゅょゎ'] }
+    };
 
     const messageElement = document.getElementById('message');
     const fullScreen = document.getElementById('fullScreen');
@@ -373,6 +373,7 @@
     let currentUtterance = null;
     let selectedVoiceURI = '';
     let voiceSampleTried = false;
+    let candidateMode = null;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
 
     function setStatus(text) { statusElement.textContent = text; }
@@ -456,16 +457,6 @@
       if (readLetters) speak(letter);
     }
 
-    function changeLast(map, reverse) {
-      if (!message) return;
-      const last = message.slice(-1);
-      const changed = map[last] || reverse[last];
-      if (!changed) return;
-      message = message.slice(0, -1) + changed;
-      updateMessage();
-      if (readLetters) speak(changed);
-    }
-
     function renderCategories() {
       const container = document.getElementById('categoryTabs');
       container.replaceChildren();
@@ -505,6 +496,31 @@
 
     function renderKeyboard() {
       const container = document.getElementById('keys');
+      container.replaceChildren();
+      container.classList.toggle('candidates', Boolean(candidateMode));
+      document.getElementById('keyboardHint').textContent = candidateMode
+        ? candidateGroups[candidateMode].label : '文字を押して文章を作る';
+      if (candidateMode) {
+        candidateGroups[candidateMode].letters.forEach(letter => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'key';
+          button.textContent = letter;
+          button.addEventListener('click', () => {
+            candidateMode = null;
+            renderKeyboard();
+            addLetter(letter);
+          });
+          container.append(button);
+        });
+        const back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'key return';
+        back.textContent = '50音にもどる';
+        back.addEventListener('click', () => { candidateMode = null; renderKeyboard(); });
+        container.append(back);
+        return;
+      }
       for (let row = 0; row < 5; row++) {
         for (const column of columns) {
           const letter = column[row];
@@ -529,9 +545,7 @@
         if (action === 'clear') button.classList.add('clear');
         button.textContent = label;
         button.addEventListener('click', () => {
-          if (action === 'voiced') changeLast(voiced, reverseVoiced);
-          else if (action === 'semi') changeLast(semiVoiced, reverseSemiVoiced);
-          else if (action === 'small') changeLast(small, reverseSmall);
+          if (candidateGroups[action]) { candidateMode = action; renderKeyboard(); }
           else if (action === 'backspace') { message = message.slice(0, -1); updateMessage(); }
           else if (action === 'clear') {
             if (!message) return;
