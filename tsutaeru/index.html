@@ -152,7 +152,20 @@
     }
 
     .keyboard-head span { color: var(--muted); }
-    .keyboard-tools { display: flex; gap: 8px; }
+    .keyboard-tools { display: flex; align-items: center; gap: 8px; }
+    .layout-modes { display: flex; gap: 5px; }
+    .layout-mode {
+      min-height: 42px;
+      padding: 3px 10px;
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .layout-mode[aria-pressed="true"] { border-color: var(--blue); background: var(--blue); color: white; }
     .speak-letters, .voice-button {
       display: inline-flex;
       align-items: center;
@@ -217,6 +230,13 @@
     .key.clear { background: #f7e8e3; color: #852c1b; border-color: #e2b7aa; }
     .key.return { grid-column: 1 / -1; background: var(--blue-soft); color: var(--blue-dark); font-size: 23px; }
 
+    .app.kana-only .message-panel { flex: 0 0 clamp(150px, 23vh, 240px); }
+    .app.kana-only .keyboard { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .app.kana-only .keys { flex: 1 1 auto; min-height: 0; grid-template-rows: repeat(6, minmax(0, 1fr)); }
+    .app.kana-only .key { height: 100%; font-size: clamp(30px, 3.7vw, 42px); }
+    .app.kana-only .key.action { font-size: clamp(15px, 2vw, 22px); }
+    .app.kana-only .key.return { font-size: 23px; }
+
     .status { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
     .full-screen {
@@ -246,6 +266,12 @@
       .key.action { font-size: 15px; }
     }
 
+    @media (max-width: 700px) {
+      .keyboard-head #keyboardHint { display: none; }
+      .layout-mode { font-size: 14px; padding-inline: 6px; }
+      .keyboard-tools { gap: 5px; }
+    }
+
     @media (max-height: 700px) {
       .app { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
       .message-panel { min-height: 100px; }
@@ -259,7 +285,7 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <main id="app" class="app">
     <section class="message-panel" aria-label="伝える言葉">
       <div id="message" class="message-display empty" aria-live="polite">ここに言葉が出ます</div>
       <div class="message-actions">
@@ -268,7 +294,7 @@
       </div>
     </section>
 
-    <section class="phrases" aria-label="よく使う言葉">
+    <section id="phrases" class="phrases" aria-label="よく使う言葉">
       <div id="categoryTabs" class="category-tabs" role="tablist" aria-label="言葉の種類"></div>
       <div id="phraseGrid" class="phrase-grid" role="tabpanel" aria-label="選んだ種類の言葉"></div>
     </section>
@@ -277,6 +303,10 @@
       <div class="keyboard-head">
         <span id="keyboardHint">文字を押して文章を作る</span>
         <div class="keyboard-tools">
+          <div class="layout-modes" role="group" aria-label="画面の表示">
+            <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="true">文例あり</button>
+            <button id="kanaMode" class="layout-mode" type="button" aria-pressed="false">50音を大きく</button>
+          </div>
           <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
           <button id="letterMode" class="speak-letters" type="button" aria-pressed="true"><span class="switch-mark" aria-hidden="true">☑</span>文字も読む：入</button>
         </div>
@@ -368,6 +398,10 @@
     const fullScreenText = document.getElementById('fullScreenText');
     const statusElement = document.getElementById('status');
     const letterModeButton = document.getElementById('letterMode');
+    const appElement = document.getElementById('app');
+    const phrasesSection = document.getElementById('phrases');
+    const phrasesModeButton = document.getElementById('phrasesMode');
+    const kanaModeButton = document.getElementById('kanaMode');
     const voicePanel = document.getElementById('voicePanel');
     const voiceList = document.getElementById('voiceList');
     let message = '';
@@ -549,6 +583,15 @@
       });
     }
 
+    function setKeyboardMode(kanaOnly) {
+      appElement.classList.toggle('kana-only', kanaOnly);
+      phrasesSection.hidden = kanaOnly;
+      phrasesModeButton.setAttribute('aria-pressed', String(!kanaOnly));
+      kanaModeButton.setAttribute('aria-pressed', String(kanaOnly));
+      candidateMode = null;
+      renderKeyboard();
+    }
+
     document.getElementById('readButton').addEventListener('click', () => speak(message));
     document.getElementById('readAgain').addEventListener('click', () => speak(message));
     document.getElementById('voiceButton').addEventListener('click', () => {
@@ -576,6 +619,8 @@
       letterModeButton.setAttribute('aria-pressed', String(readLetters));
       letterModeButton.innerHTML = '<span class="switch-mark" aria-hidden="true">' + (readLetters ? '☑' : '□') + '</span>文字も読む：' + (readLetters ? '入' : '切');
     });
+    phrasesModeButton.addEventListener('click', () => setKeyboardMode(false));
+    kanaModeButton.addEventListener('click', () => setKeyboardMode(true));
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
 
     renderCategories();
