@@ -256,17 +256,18 @@
     .app.kana-only .key.action { font-size: clamp(15px, 2vw, 22px); }
     .app.kana-only .key.return { font-size: 23px; }
 
-    .app.flick-mode .keys { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(7, minmax(0, 1fr)); }
+    .app.flick-mode .keys { width: min(100%, 70vh); width: min(100%, 70dvh); align-self: center; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: minmax(0, 1fr); }
+    .app.flick-mode .flick-kana-grid { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 5px; }
+    .app.flick-mode .flick-action-grid { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 5px; }
     .app.flick-mode .key.action { font-size: clamp(20px, 2.7vw, 28px); }
-    .app.flick-mode .key.backspace { grid-column: span 2; }
     .app.flick-mode .key.return { grid-column: auto; font-size: clamp(16px, 2vw, 22px); }
     .flick-key { position: relative; touch-action: none; }
     .flick-choice { position: absolute; padding: 1px 6px; border-radius: 7px; color: var(--muted); font-size: clamp(15px, 1.8vh, 25px); pointer-events: none; }
     .flick-choice.center { top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--ink); font-size: clamp(28px, 3.6vh, 48px); }
     .flick-choice.left { top: 50%; left: 12px; transform: translateY(-50%); }
-    .flick-choice.up { top: 4px; left: 50%; transform: translateX(-50%); }
+    .flick-choice.up { top: clamp(18px, 2.5vh, 32px); left: 50%; transform: translateX(-50%); }
     .flick-choice.right { top: 50%; right: 12px; transform: translateY(-50%); }
-    .flick-choice.down { bottom: 4px; left: 50%; transform: translateX(-50%); }
+    .flick-choice.down { bottom: clamp(18px, 2.5vh, 32px); left: 50%; transform: translateX(-50%); }
     .flick-choice.selected { background: var(--blue); color: white; }
 
     .status { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
@@ -751,8 +752,15 @@
         }
         addLetter(letter);
       };
-      if (keyboardMode === 'flick') renderFlickKeys(container, chooseLetter);
-      else for (let row = 0; row < 5; row++) {
+      let actionContainer = container;
+      if (keyboardMode === 'flick') {
+        const kanaGrid = document.createElement('div');
+        kanaGrid.className = 'flick-kana-grid';
+        actionContainer = document.createElement('div');
+        actionContainer.className = 'flick-action-grid';
+        container.append(kanaGrid, actionContainer);
+        renderFlickKeys(kanaGrid, chooseLetter);
+      } else for (let row = 0; row < 5; row++) {
         for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
           if (candidateMode && row === 1 && columnIndex === 7) {
             const back = document.createElement('button');
@@ -812,7 +820,7 @@
           }
           if (pendingMark && !candidateGroups[action]) { pendingMark = null; renderKeyboard(); }
         });
-        container.append(button);
+        actionContainer.append(button);
       });
     }
 
