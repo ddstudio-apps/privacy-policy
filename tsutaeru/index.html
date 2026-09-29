@@ -306,7 +306,7 @@
   </style>
 </head>
 <body>
-  <main id="app" class="app">
+  <main id="app" class="app kana-only">
     <section class="message-panel" aria-label="伝える言葉">
       <div id="message" class="message-display empty" aria-live="polite">ここに言葉が出ます</div>
       <div class="message-actions">
@@ -315,7 +315,7 @@
       </div>
     </section>
 
-    <section id="phrases" class="phrases" aria-label="よく使う言葉">
+    <section id="phrases" class="phrases" aria-label="よく使う言葉" hidden>
       <div id="categoryTabs" class="category-tabs" role="tablist" aria-label="言葉の種類"></div>
       <div id="phraseGrid" class="phrase-grid" role="tabpanel" aria-label="選んだ種類の言葉"></div>
     </section>
@@ -325,8 +325,8 @@
         <span id="keyboardHint">文字を押して文章を作る</span>
         <div class="keyboard-tools">
           <div class="layout-modes" role="group" aria-label="画面の表示">
-            <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="true">文例あり</button>
-            <button id="kanaMode" class="layout-mode" type="button" aria-pressed="false">50音を大きく</button>
+            <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="false">文例あり</button>
+            <button id="kanaMode" class="layout-mode" type="button" aria-pressed="true">50音を大きく</button>
           </div>
           <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
           <button id="qrButton" class="qr-button" type="button" aria-label="このアプリのQRコードを表示">QR</button>
@@ -772,7 +772,7 @@
 
     renderCategories();
     renderPhrases();
-    renderKeyboard();
+    setKeyboardMode(true);
     updateMessage();
   </script>
 </body>
