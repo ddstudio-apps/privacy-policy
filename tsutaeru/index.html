@@ -141,7 +141,7 @@
 
     .keyboard { flex: 0 0 auto; min-height: 0; }
     .keyboard-head {
-      min-height: 32px;
+      min-height: 42px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -151,12 +151,13 @@
     }
 
     .keyboard-head span { color: var(--muted); }
-    .speak-letters {
+    .keyboard-tools { display: flex; gap: 8px; }
+    .speak-letters, .voice-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      min-height: 31px;
+      min-height: 42px;
       padding: 3px 10px;
       border: 1.5px solid var(--line);
       border-radius: 8px;
@@ -168,6 +169,27 @@
 
     .speak-letters[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
     .speak-letters .switch-mark { font-size: 20px; line-height: 1; color: var(--blue); }
+    .voice-button { min-width: 110px; font-size: 17px; }
+
+    .voice-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+      background: #17313ca8;
+    }
+
+    .voice-panel[hidden] { display: none; }
+    .voice-card { width: min(100%, 570px); max-height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--paper); }
+    .voice-card h2 { margin: 0; font-size: 26px; }
+    .voice-help { margin: 0; color: var(--muted); font-size: 18px; }
+    .voice-list { display: grid; gap: 8px; overflow-y: auto; }
+    .voice-choice, .voice-close { min-height: 58px; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font-size: 21px; font-weight: 750; }
+    .voice-choice[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
+    .voice-close { align-self: stretch; background: var(--blue); border-color: var(--blue); color: white; }
 
     .keys { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
 
@@ -227,7 +249,7 @@
       .message-panel { min-height: 100px; }
       .category-tab { height: 37px; }
       .phrase-button { min-height: 44px; }
-      .keyboard-head { min-height: 28px; }
+      .keyboard-head { min-height: 42px; }
       .key { height: clamp(46px, 8vh, 58px); }
     }
 
@@ -252,7 +274,10 @@
     <section class="keyboard" aria-label="50音で入力">
       <div class="keyboard-head">
         <span>文字を押して文章を作る</span>
-        <button id="letterMode" class="speak-letters" type="button" aria-pressed="false"><span class="switch-mark" aria-hidden="true">□</span>文字も読む：切</button>
+        <div class="keyboard-tools">
+          <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
+          <button id="letterMode" class="speak-letters" type="button" aria-pressed="false"><span class="switch-mark" aria-hidden="true">□</span>文字も読む：切</button>
+        </div>
       </div>
       <div id="keys" class="keys"></div>
     </section>
@@ -264,6 +289,15 @@
     <div class="full-screen-actions">
       <button id="closeFullScreen" type="button">もどる</button>
       <button id="readAgain" class="read-again" type="button">読み上げ</button>
+    </div>
+  </section>
+
+  <section id="voicePanel" class="voice-panel" role="dialog" aria-modal="true" aria-labelledby="voiceTitle" hidden>
+    <div class="voice-card">
+      <h2 id="voiceTitle">声を選ぶ</h2>
+      <p class="voice-help">声を押すと、試しに読み上げます</p>
+      <div id="voiceList" class="voice-list"></div>
+      <button id="closeVoicePanel" class="voice-close" type="button">もどる</button>
     </div>
   </section>
 
@@ -331,10 +365,15 @@
     const fullScreenText = document.getElementById('fullScreenText');
     const statusElement = document.getElementById('status');
     const letterModeButton = document.getElementById('letterMode');
+    const voicePanel = document.getElementById('voicePanel');
+    const voiceList = document.getElementById('voiceList');
     let message = '';
     let currentCategory = 0;
     let readLetters = false;
     let currentUtterance = null;
+    let selectedVoiceURI = '';
+    let voiceSampleTried = false;
+    try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
 
     function setStatus(text) { statusElement.textContent = text; }
 
@@ -361,10 +400,10 @@
       stopSpeaking();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ja-JP';
-      utterance.rate = 0.88;
+      utterance.rate = 1;
       utterance.volume = 1;
-      const japaneseVoice = window.speechSynthesis.getVoices().find(voice => voice.lang.toLowerCase().startsWith('ja'));
-      if (japaneseVoice) utterance.voice = japaneseVoice;
+      const selectedVoice = window.speechSynthesis.getVoices().find(voice => voice.voiceURI === selectedVoiceURI && voice.lang.toLowerCase().startsWith('ja'));
+      if (selectedVoice) utterance.voice = selectedVoice;
       utterance.onstart = () => setStatus('読み上げています');
       utterance.onend = () => { currentUtterance = null; setStatus('読み上げが終わりました'); };
       utterance.onerror = event => {
@@ -373,6 +412,42 @@
       };
       currentUtterance = utterance;
       window.speechSynthesis.speak(utterance);
+    }
+
+    function renderVoices() {
+      voiceList.replaceChildren();
+      const voices = 'speechSynthesis' in window
+        ? window.speechSynthesis.getVoices().filter(voice => voice.lang.toLowerCase().startsWith('ja'))
+        : [];
+      const nameCounts = new Map();
+      voices.forEach(voice => nameCounts.set(voice.name, (nameCounts.get(voice.name) || 0) + 1));
+      const nameOrder = new Map();
+      const choices = [{ name: '標準の声', voiceURI: '' }, ...voices];
+      choices.forEach(voice => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'voice-choice';
+        const order = (nameOrder.get(voice.name) || 0) + 1;
+        nameOrder.set(voice.name, order);
+        button.textContent = (nameCounts.get(voice.name) || 0) > 1 ? `${voice.name} ${order}` : voice.name;
+        button.setAttribute('aria-pressed', String(selectedVoiceURI === voice.voiceURI));
+        button.addEventListener('click', () => {
+          selectedVoiceURI = voice.voiceURI;
+          voiceSampleTried = true;
+          try { localStorage.setItem('tsutaeru-voice', selectedVoiceURI); } catch (_) {}
+          renderVoices();
+          speak('こんにちは。よろしくお願いします。');
+        });
+        voiceList.append(button);
+      });
+      if (!voices.length) {
+        const note = document.createElement('p');
+        note.className = 'voice-help';
+        note.textContent = voiceSampleTried
+          ? 'ほかの日本語の声は、このiPadでは見つかりません。'
+          : 'ほかの声が出ないときは、まず「標準の声」を押してください。';
+        voiceList.append(note);
+      }
     }
 
     function addLetter(letter) {
@@ -469,6 +544,17 @@
 
     document.getElementById('readButton').addEventListener('click', () => speak(message));
     document.getElementById('readAgain').addEventListener('click', () => speak(message));
+    document.getElementById('voiceButton').addEventListener('click', () => {
+      renderVoices();
+      voicePanel.hidden = false;
+      document.getElementById('closeVoicePanel').focus();
+    });
+    document.getElementById('closeVoicePanel').addEventListener('click', () => {
+      stopSpeaking();
+      voicePanel.hidden = true;
+      document.getElementById('voiceButton').focus();
+    });
+    if ('speechSynthesis' in window) window.speechSynthesis.addEventListener('voiceschanged', () => { if (!voicePanel.hidden) renderVoices(); });
     document.getElementById('showButton').addEventListener('click', () => {
       if (!message) { setStatus('文字を選んでください'); return; }
       fullScreen.hidden = false;
