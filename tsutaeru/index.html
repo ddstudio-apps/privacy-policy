@@ -278,7 +278,7 @@
         <span id="keyboardHint">文字を押して文章を作る</span>
         <div class="keyboard-tools">
           <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
-          <button id="letterMode" class="speak-letters" type="button" aria-pressed="false"><span class="switch-mark" aria-hidden="true">□</span>文字も読む：切</button>
+          <button id="letterMode" class="speak-letters" type="button" aria-pressed="true"><span class="switch-mark" aria-hidden="true">☑</span>文字も読む：入</button>
         </div>
       </div>
       <div id="keys" class="keys"></div>
@@ -372,7 +372,7 @@
     const voiceList = document.getElementById('voiceList');
     let message = '';
     let currentCategory = 0;
-    let readLetters = false;
+    let readLetters = true;
     let currentUtterance = null;
     let selectedVoiceURI = '';
     let voiceSampleTried = false;
