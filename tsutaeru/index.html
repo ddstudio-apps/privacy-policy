@@ -251,8 +251,8 @@
     }
 
     .full-screen[hidden] { display: none; }
-    .full-screen-text { flex: 1; display: flex; align-items: center; justify-content: center; overflow-y: auto; text-align: center; font-size: clamp(48px, 6vw, 95px); font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; white-space: pre-wrap; }
-    .full-screen-text.long { font-size: clamp(36px, 4.5vw, 65px); }
+    .full-screen-text { flex: 1; min-height: 0; display: flex; overflow-y: auto; }
+    .full-screen-content { margin: auto; max-width: 100%; min-width: 0; text-align: center; font-size: 44px; font-weight: 800; line-height: 1.18; overflow-wrap: anywhere; white-space: pre-wrap; }
     .full-screen-actions { display: flex; justify-content: center; gap: 12px; }
     .full-screen-actions button { min-width: 160px; min-height: 60px; border: 2px solid var(--blue); border-radius: 12px; background: var(--paper); color: var(--blue-dark); font-size: 23px; font-weight: 800; }
     .full-screen-actions .read-again { background: var(--blue); color: white; }
@@ -317,7 +317,7 @@
   </main>
 
   <section id="fullScreen" class="full-screen" aria-label="大きく見せる画面" hidden>
-    <div id="fullScreenText" class="full-screen-text"></div>
+    <div id="fullScreenText" class="full-screen-text"><span id="fullScreenContent" class="full-screen-content"></span></div>
     <div class="full-screen-actions">
       <button id="closeFullScreen" type="button">もどる</button>
       <button id="readAgain" class="read-again" type="button">読み上げ</button>
@@ -396,6 +396,7 @@
     const messageElement = document.getElementById('message');
     const fullScreen = document.getElementById('fullScreen');
     const fullScreenText = document.getElementById('fullScreenText');
+    const fullScreenContent = document.getElementById('fullScreenContent');
     const statusElement = document.getElementById('status');
     const letterModeButton = document.getElementById('letterMode');
     const appElement = document.getElementById('app');
@@ -419,9 +420,22 @@
       messageElement.textContent = message || 'ここに言葉が出ます';
       messageElement.classList.toggle('empty', !message);
       messageElement.classList.toggle('long', message.length > 28);
-      fullScreenText.textContent = message;
-      fullScreenText.classList.toggle('long', message.length > 28);
+      fullScreenContent.textContent = message;
       messageElement.scrollTop = messageElement.scrollHeight;
+    }
+
+    function fitFullScreenText() {
+      let low = 44;
+      let high = 320;
+      for (let i = 0; i < 10; i++) {
+        const size = Math.ceil((low + high) / 2);
+        fullScreenContent.style.fontSize = `${size}px`;
+        if (fullScreenContent.getBoundingClientRect().height <= fullScreenText.clientHeight + 1 &&
+            fullScreenContent.getBoundingClientRect().width <= fullScreenText.clientWidth + 1) low = size;
+        else high = size - 1;
+        if (low >= high) break;
+      }
+      fullScreenContent.style.fontSize = `${low}px`;
     }
 
     function stopSpeaking() {
@@ -613,6 +627,7 @@
     document.getElementById('showButton').addEventListener('click', () => {
       if (!message) { setStatus('文字を選んでください'); return; }
       fullScreen.hidden = false;
+      fitFullScreenText();
       document.getElementById('closeFullScreen').focus();
     });
     document.getElementById('closeFullScreen').addEventListener('click', () => {
@@ -626,6 +641,7 @@
     });
     phrasesModeButton.addEventListener('click', () => setKeyboardMode(false));
     kanaModeButton.addEventListener('click', () => setKeyboardMode(true));
+    window.addEventListener('resize', () => { if (!fullScreen.hidden) fitFullScreenText(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
 
     renderCategories();
