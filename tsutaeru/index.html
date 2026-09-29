@@ -398,6 +398,7 @@
 
     const messageElement = document.getElementById('message');
     const fullScreen = document.getElementById('fullScreen');
+    const fullScreenText = document.getElementById('fullScreenText');
     const fullScreenContent = document.getElementById('fullScreenContent');
     const smallerTextButton = document.getElementById('smallerText');
     const largerTextButton = document.getElementById('largerText');
@@ -434,14 +435,51 @@
     }
 
     function applyFullScreenFontSize() {
-      fullScreenContent.style.fontSize = `${fullScreenFontSize}px`;
+      const contentStyle = fullScreenContent.style;
+      const availableWidth = fullScreenText.clientWidth - 8;
+      const availableHeight = fullScreenText.clientHeight - 8;
+      contentStyle.whiteSpace = 'nowrap';
+      contentStyle.maxWidth = 'none';
+      contentStyle.flexShrink = '0';
+      contentStyle.fontSize = `${fullScreenFontSize}px`;
+      const oneLineWidth = fullScreenContent.getBoundingClientRect().width;
+      const oneLineSize = Math.min(fullScreenFontSize, Math.floor(fullScreenFontSize * availableWidth / Math.max(1, oneLineWidth)));
+      contentStyle.maxWidth = '';
+      contentStyle.flexShrink = '';
+      const minimumOneLineSize = Math.min(fullScreenFontSize, Math.max(80, fullScreenFontSize - 24));
+      if (oneLineSize >= minimumOneLineSize) {
+        contentStyle.fontSize = `${oneLineSize}px`;
+      } else {
+        contentStyle.whiteSpace = 'pre-wrap';
+        let low = 48;
+        let high = fullScreenFontSize;
+        let best = 48;
+        while (low <= high) {
+          const size = Math.floor((low + high) / 2);
+          contentStyle.fontSize = `${size}px`;
+          if (fullScreenContent.getBoundingClientRect().height <= availableHeight) {
+            best = size;
+            low = size + 1;
+          } else {
+            high = size - 1;
+          }
+        }
+        contentStyle.fontSize = `${best}px`;
+      }
+      fullScreenText.scrollTop = 0;
       smallerTextButton.disabled = fullScreenFontSize <= 48;
       largerTextButton.disabled = fullScreenFontSize >= 272;
     }
 
     function adjustFullScreenFontSize(change) {
-      fullScreenFontSize = Math.max(48, Math.min(272, fullScreenFontSize + change));
-      applyFullScreenFontSize();
+      const previousSize = fullScreenContent.style.fontSize;
+      const previousWrapping = fullScreenContent.style.whiteSpace;
+      do {
+        fullScreenFontSize = Math.max(48, Math.min(272, fullScreenFontSize + change));
+        applyFullScreenFontSize();
+      } while (fullScreenFontSize > 48 && fullScreenFontSize < 272 &&
+               fullScreenContent.style.fontSize === previousSize &&
+               fullScreenContent.style.whiteSpace === previousWrapping);
       try { localStorage.setItem('tsutaeru-display-size', String(fullScreenFontSize)); } catch (_) {}
     }
 
@@ -650,6 +688,7 @@
     });
     phrasesModeButton.addEventListener('click', () => setKeyboardMode(false));
     kanaModeButton.addEventListener('click', () => setKeyboardMode(true));
+    window.addEventListener('resize', () => { if (!fullScreen.hidden) applyFullScreenFontSize(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
 
     renderCategories();
