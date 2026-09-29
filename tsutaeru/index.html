@@ -256,6 +256,19 @@
     .app.kana-only .key.action { font-size: clamp(15px, 2vw, 22px); }
     .app.kana-only .key.return { font-size: 23px; }
 
+    .app.flick-mode .keys { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(7, minmax(0, 1fr)); }
+    .app.flick-mode .key.action { font-size: clamp(20px, 2.7vw, 28px); }
+    .app.flick-mode .key.backspace { grid-column: span 2; }
+    .app.flick-mode .key.return { grid-column: auto; font-size: clamp(16px, 2vw, 22px); }
+    .flick-key { position: relative; touch-action: none; }
+    .flick-choice { position: absolute; padding: 1px 6px; border-radius: 7px; color: var(--muted); font-size: clamp(15px, 1.8vh, 25px); pointer-events: none; }
+    .flick-choice.center { top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--ink); font-size: clamp(28px, 3.6vh, 48px); }
+    .flick-choice.left { top: 50%; left: 12px; transform: translateY(-50%); }
+    .flick-choice.up { top: 4px; left: 50%; transform: translateX(-50%); }
+    .flick-choice.right { top: 50%; right: 12px; transform: translateY(-50%); }
+    .flick-choice.down { bottom: 4px; left: 50%; transform: translateX(-50%); }
+    .flick-choice.selected { background: var(--blue); color: white; }
+
     .status { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
     .full-screen {
@@ -276,6 +289,8 @@
     .full-screen-actions button { min-width: 160px; min-height: 60px; border: 2px solid var(--blue); border-radius: 12px; background: var(--paper); color: var(--blue-dark); font-size: 23px; font-weight: 800; }
     .full-screen-actions button:disabled { opacity: 0.45; }
     .full-screen-actions .read-again { background: var(--blue); color: white; }
+
+    @media (max-width: 1000px) { .keyboard-head #keyboardHint { display: none; } }
 
     @media (max-width: 800px) {
       .keyboard-head #keyboardHint { display: none; }
@@ -327,6 +342,7 @@
           <div class="layout-modes" role="group" aria-label="画面の表示">
             <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="false">文例あり</button>
             <button id="kanaMode" class="layout-mode" type="button" aria-pressed="true">50音を大きく</button>
+            <button id="flickMode" class="layout-mode" type="button" aria-pressed="false">フリック</button>
           </div>
           <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
           <button id="qrButton" class="qr-button" type="button" aria-label="このアプリのQRコードを表示">QR</button>
@@ -438,6 +454,7 @@
     const phrasesSection = document.getElementById('phrases');
     const phrasesModeButton = document.getElementById('phrasesMode');
     const kanaModeButton = document.getElementById('kanaMode');
+    const flickModeButton = document.getElementById('flickMode');
     const voicePanel = document.getElementById('voicePanel');
     const voiceList = document.getElementById('voiceList');
     const qrPanel = document.getElementById('qrPanel');
@@ -449,6 +466,7 @@
     let voiceSampleTried = false;
     let candidateMode = null;
     let pendingMark = null;
+    let keyboardMode = 'kana';
     let fullScreenFontSize = 112;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
     try {
@@ -641,12 +659,100 @@
       });
     }
 
+    function renderFlickKeys(container, chooseLetter) {
+      const positions = ['center', 'left', 'up', 'right', 'down'];
+      const directionLabels = ['タップ', '左', '上', '右', '下'];
+      columns.forEach((column, columnIndex) => {
+        if (candidateMode && columnIndex === 8) {
+          const back = document.createElement('button');
+          back.type = 'button';
+          back.className = 'key return';
+          back.textContent = 'フリックにもどる';
+          back.addEventListener('click', () => { candidateMode = null; renderKeyboard(); });
+          container.append(back);
+          return;
+        }
+        const choices = column.map(letter => candidateMode ? candidateGroups[candidateMode].map[letter] || '' : letter);
+        if (candidateMode === 'small' && column[0] === 'た') {
+          choices[0] = choices[2];
+          choices[2] = '';
+        }
+        if (!choices.some(Boolean)) {
+          const blank = document.createElement('span');
+          blank.className = 'key blank';
+          blank.setAttribute('aria-hidden', 'true');
+          container.append(blank);
+          return;
+        }
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'key flick-key';
+        button.setAttribute('aria-label', column[0] + '行。' + choices.map((letter, index) => letter ? directionLabels[index] + 'で' + letter : '').filter(Boolean).join('、'));
+        const choiceElements = choices.map((letter, index) => {
+          if (!letter) return null;
+          const span = document.createElement('span');
+          span.className = 'flick-choice ' + positions[index];
+          span.textContent = letter;
+          button.append(span);
+          return span;
+        });
+        let pointerId = null;
+        let startX = 0;
+        let startY = 0;
+        let lastPointerUp = 0;
+        const showChoice = index => choiceElements.forEach((element, choiceIndex) => {
+          if (element) element.classList.toggle('selected', choiceIndex === index);
+        });
+        const direction = event => {
+          const dx = event.clientX - startX;
+          const dy = event.clientY - startY;
+          const threshold = Math.max(25, Math.min(button.clientWidth, button.clientHeight) * 0.18);
+          if (Math.max(Math.abs(dx), Math.abs(dy)) < threshold) return 0;
+          return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 3) : (dy < 0 ? 2 : 4);
+        };
+        button.addEventListener('pointerdown', event => {
+          if (event.button !== 0) return;
+          pointerId = event.pointerId;
+          startX = event.clientX;
+          startY = event.clientY;
+          button.setPointerCapture(pointerId);
+          showChoice(0);
+        });
+        button.addEventListener('pointermove', event => {
+          if (event.pointerId === pointerId) showChoice(direction(event));
+        });
+        button.addEventListener('pointerup', event => {
+          if (event.pointerId !== pointerId) return;
+          const letter = choices[direction(event)];
+          pointerId = null;
+          lastPointerUp = Date.now();
+          showChoice(-1);
+          if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
+          if (letter) chooseLetter(letter);
+        });
+        button.addEventListener('pointercancel', () => { pointerId = null; showChoice(-1); });
+        button.addEventListener('click', () => {
+          if (Date.now() - lastPointerUp >= 400 && choices[0]) chooseLetter(choices[0]);
+        });
+        container.append(button);
+      });
+    }
+
     function renderKeyboard() {
       const container = document.getElementById('keys');
       container.replaceChildren();
       document.getElementById('keyboardHint').textContent = candidateMode
-        ? candidateGroups[candidateMode].label : '文字を押して文章を作る';
-      for (let row = 0; row < 5; row++) {
+        ? candidateGroups[candidateMode].label : keyboardMode === 'flick' ? '指を上下左右に動かして文字を選ぶ' : '文字を押して文章を作る';
+      const chooseLetter = letter => {
+        if (candidateMode || pendingMark) {
+          candidateMode = null;
+          pendingMark = null;
+          renderKeyboard();
+        }
+        addLetter(letter);
+      };
+      if (keyboardMode === 'flick') renderFlickKeys(container, chooseLetter);
+      else for (let row = 0; row < 5; row++) {
         for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
           if (candidateMode && row === 1 && columnIndex === 7) {
             const back = document.createElement('button');
@@ -665,14 +771,7 @@
           button.className = letter ? 'key' : 'key blank';
           button.textContent = letter;
           if (!letter) button.setAttribute('aria-hidden', 'true');
-          else button.addEventListener('click', () => {
-            if (candidateMode || pendingMark) {
-              candidateMode = null;
-              pendingMark = null;
-              renderKeyboard();
-            }
-            addLetter(letter);
-          });
+          else button.addEventListener('click', () => chooseLetter(letter));
           container.append(button);
         }
       }
@@ -717,11 +816,14 @@
       });
     }
 
-    function setKeyboardMode(kanaOnly) {
-      appElement.classList.toggle('kana-only', kanaOnly);
-      phrasesSection.hidden = kanaOnly;
-      phrasesModeButton.setAttribute('aria-pressed', String(!kanaOnly));
-      kanaModeButton.setAttribute('aria-pressed', String(kanaOnly));
+    function setKeyboardMode(mode) {
+      keyboardMode = mode;
+      appElement.classList.toggle('kana-only', mode !== 'phrases');
+      appElement.classList.toggle('flick-mode', mode === 'flick');
+      phrasesSection.hidden = mode !== 'phrases';
+      phrasesModeButton.setAttribute('aria-pressed', String(mode === 'phrases'));
+      kanaModeButton.setAttribute('aria-pressed', String(mode === 'kana'));
+      flickModeButton.setAttribute('aria-pressed', String(mode === 'flick'));
       candidateMode = null;
       pendingMark = null;
       renderKeyboard();
@@ -765,14 +867,15 @@
       letterModeButton.setAttribute('aria-pressed', String(readLetters));
       letterModeButton.innerHTML = '<span class="switch-mark" aria-hidden="true">' + (readLetters ? '☑' : '□') + '</span>文字も読む：' + (readLetters ? '入' : '切');
     });
-    phrasesModeButton.addEventListener('click', () => setKeyboardMode(false));
-    kanaModeButton.addEventListener('click', () => setKeyboardMode(true));
+    phrasesModeButton.addEventListener('click', () => setKeyboardMode('phrases'));
+    kanaModeButton.addEventListener('click', () => setKeyboardMode('kana'));
+    flickModeButton.addEventListener('click', () => setKeyboardMode('flick'));
     window.addEventListener('resize', () => { if (!fullScreen.hidden) applyFullScreenFontSize(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
 
     renderCategories();
     renderPhrases();
-    setKeyboardMode(true);
+    setKeyboardMode('kana');
     updateMessage();
   </script>
 </body>
