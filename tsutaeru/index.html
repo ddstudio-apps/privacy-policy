@@ -228,7 +228,7 @@
     .key.action { background: #e9eff2; font-size: clamp(15px, 1.9vw, 20px); }
     .key.backspace { background: #dfeaf0; }
     .key.clear { background: #f7e8e3; color: #852c1b; border-color: #e2b7aa; }
-    .key.return { grid-column: 1 / -1; background: var(--blue-soft); color: var(--blue-dark); font-size: 23px; }
+    .key.return { grid-column: span 3; background: var(--blue-soft); color: var(--blue-dark); font-size: 23px; }
 
     .app.kana-only .message-panel { flex: 0 0 clamp(150px, 23vh, 240px); }
     .app.kana-only .keyboard { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
@@ -537,7 +537,18 @@
       document.getElementById('keyboardHint').textContent = candidateMode
         ? candidateGroups[candidateMode].label : '文字を押して文章を作る';
       for (let row = 0; row < 5; row++) {
-        for (const column of columns) {
+        for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+          if (candidateMode && row === 1 && columnIndex === 7) {
+            const back = document.createElement('button');
+            back.type = 'button';
+            back.className = 'key return';
+            back.textContent = '50音にもどる';
+            back.addEventListener('click', () => { candidateMode = null; renderKeyboard(); });
+            container.append(back);
+            columnIndex += 2;
+            continue;
+          }
+          const column = columns[columnIndex];
           const letter = candidateMode ? candidateGroups[candidateMode].map[column[row]] || '' : column[row];
           const button = document.createElement(letter ? 'button' : 'span');
           if (letter) button.type = 'button';
@@ -550,15 +561,6 @@
           });
           container.append(button);
         }
-      }
-      if (candidateMode) {
-        const back = document.createElement('button');
-        back.type = 'button';
-        back.className = 'key return';
-        back.textContent = '50音にもどる';
-        back.addEventListener('click', () => { candidateMode = null; renderKeyboard(); });
-        container.append(back);
-        return;
       }
       const actions = [
         ['゛', 'voiced'], ['゜', 'semi'], ['小文字', 'small'], ['ー', 'ー'], ['、', '、'],
@@ -577,7 +579,10 @@
           else if (action === 'clear') {
             if (!message) return;
             stopSpeaking(); message = ''; updateMessage();
-          } else addLetter(action);
+          } else {
+            if (candidateMode) { candidateMode = null; renderKeyboard(); }
+            addLetter(action);
+          }
         });
         container.append(button);
       });
