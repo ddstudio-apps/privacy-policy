@@ -244,6 +244,7 @@
     .key:active { background: var(--blue-soft); border-bottom-width: 1.5px; }
     .key.blank { visibility: hidden; pointer-events: none; }
     .key.action { background: #e9eff2; font-size: clamp(15px, 1.9vw, 20px); }
+    .key.action.choose-next { background: var(--blue-soft); color: var(--blue-dark); }
     .key.backspace { background: #dfeaf0; }
     .key.clear { background: #f7e8e3; color: #852c1b; border-color: #e2b7aa; }
     .key.return { grid-column: span 3; background: var(--blue-soft); color: var(--blue-dark); font-size: 23px; }
@@ -447,6 +448,7 @@
     let selectedVoiceURI = '';
     let voiceSampleTried = false;
     let candidateMode = null;
+    let pendingMark = null;
     let fullScreenFontSize = 112;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
     try {
@@ -583,6 +585,24 @@
       if (readLetters) speak(letter);
     }
 
+    function convertLastLetter(action) {
+      const last = message.slice(-1);
+      let converted = candidateGroups[action].map[last];
+      if (!converted) {
+        const from = action === 'voiced' ? 'ぱぴぷぺぽ' : 'ばびぶべぼ';
+        const to = action === 'voiced' ? 'ばびぶべぼ' : 'ぱぴぷぺぽ';
+        const index = [...from].indexOf(last);
+        if (index >= 0) converted = [...to][index];
+      }
+      if (!converted) return false;
+      message = message.slice(0, -1) + converted;
+      pendingMark = { action, original: last };
+      updateMessage();
+      if (readLetters) speak(converted);
+      renderKeyboard();
+      return true;
+    }
+
     function renderCategories() {
       const container = document.getElementById('categoryTabs');
       container.replaceChildren();
@@ -612,6 +632,7 @@
         if (['苦しいです', '息が苦しいです', '痰が出せません', 'すぐ来てください', '看護師さんを呼んでください'].includes(phrase)) button.classList.add('urgent');
         button.textContent = phrase;
         button.addEventListener('click', () => {
+          if (pendingMark) { pendingMark = null; renderKeyboard(); }
           message = phrase;
           updateMessage();
           speak(phrase);
@@ -645,7 +666,11 @@
           button.textContent = letter;
           if (!letter) button.setAttribute('aria-hidden', 'true');
           else button.addEventListener('click', () => {
-            if (candidateMode) { candidateMode = null; renderKeyboard(); }
+            if (candidateMode || pendingMark) {
+              candidateMode = null;
+              pendingMark = null;
+              renderKeyboard();
+            }
             addLetter(letter);
           });
           container.append(button);
@@ -661,17 +686,32 @@
         button.className = 'key action';
         if (action === 'backspace') button.classList.add('backspace');
         if (action === 'clear') button.classList.add('clear');
-        button.textContent = label;
+        if (pendingMark && pendingMark.action === action) button.classList.add('choose-next');
+        button.textContent = pendingMark && pendingMark.action === action ? label + 'を選ぶ' : label;
         button.addEventListener('click', () => {
-          if (candidateGroups[action]) { candidateMode = action; renderKeyboard(); }
-          else if (action === 'backspace') { message = message.slice(0, -1); updateMessage(); }
-          else if (action === 'clear') {
+          if (candidateGroups[action]) {
+            if (pendingMark && pendingMark.action === action && !candidateMode) {
+              message = message.slice(0, -1) + pendingMark.original;
+              pendingMark = null;
+              updateMessage();
+              candidateMode = action;
+              renderKeyboard();
+              return;
+            }
+            pendingMark = null;
+            if (!candidateMode && action !== 'small' && convertLastLetter(action)) return;
+            candidateMode = action;
+            renderKeyboard();
+          } else if (action === 'backspace') {
+            message = message.slice(0, -1); updateMessage();
+          } else if (action === 'clear') {
             if (!message) return;
             stopSpeaking(); message = ''; updateMessage();
           } else {
             if (candidateMode) { candidateMode = null; renderKeyboard(); }
             addLetter(action);
           }
+          if (pendingMark && !candidateGroups[action]) { pendingMark = null; renderKeyboard(); }
         });
         container.append(button);
       });
@@ -683,6 +723,7 @@
       phrasesModeButton.setAttribute('aria-pressed', String(!kanaOnly));
       kanaModeButton.setAttribute('aria-pressed', String(kanaOnly));
       candidateMode = null;
+      pendingMark = null;
       renderKeyboard();
     }
 
