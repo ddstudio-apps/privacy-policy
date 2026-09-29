@@ -253,8 +253,9 @@
     .full-screen[hidden] { display: none; }
     .full-screen-text { flex: 1; min-height: 0; display: flex; overflow-y: auto; }
     .full-screen-content { margin: auto; max-width: 100%; min-width: 0; text-align: center; font-size: 44px; font-weight: 800; line-height: 1.18; overflow-wrap: anywhere; white-space: pre-wrap; }
-    .full-screen-actions { display: flex; justify-content: center; gap: 12px; }
+    .full-screen-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .full-screen-actions button { min-width: 160px; min-height: 60px; border: 2px solid var(--blue); border-radius: 12px; background: var(--paper); color: var(--blue-dark); font-size: 23px; font-weight: 800; }
+    .full-screen-actions button:disabled { opacity: 0.45; }
     .full-screen-actions .read-again { background: var(--blue); color: white; }
 
     @media (max-width: 800px) {
@@ -320,6 +321,8 @@
     <div id="fullScreenText" class="full-screen-text"><span id="fullScreenContent" class="full-screen-content"></span></div>
     <div class="full-screen-actions">
       <button id="closeFullScreen" type="button">もどる</button>
+      <button id="smallerText" type="button" aria-label="文字を小さくする">− 小さく</button>
+      <button id="largerText" type="button" aria-label="文字を大きくする">＋ 大きく</button>
       <button id="readAgain" class="read-again" type="button">読み上げ</button>
     </div>
   </section>
@@ -395,8 +398,9 @@
 
     const messageElement = document.getElementById('message');
     const fullScreen = document.getElementById('fullScreen');
-    const fullScreenText = document.getElementById('fullScreenText');
     const fullScreenContent = document.getElementById('fullScreenContent');
+    const smallerTextButton = document.getElementById('smallerText');
+    const largerTextButton = document.getElementById('largerText');
     const statusElement = document.getElementById('status');
     const letterModeButton = document.getElementById('letterMode');
     const appElement = document.getElementById('app');
@@ -412,7 +416,12 @@
     let selectedVoiceURI = '';
     let voiceSampleTried = false;
     let candidateMode = null;
+    let fullScreenFontSize = 112;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
+    try {
+      const savedSize = Number(localStorage.getItem('tsutaeru-display-size'));
+      if (savedSize >= 48 && savedSize <= 272) fullScreenFontSize = savedSize;
+    } catch (_) {}
 
     function setStatus(text) { statusElement.textContent = text; }
 
@@ -424,18 +433,16 @@
       messageElement.scrollTop = messageElement.scrollHeight;
     }
 
-    function fitFullScreenText() {
-      let low = 44;
-      let high = 320;
-      for (let i = 0; i < 10; i++) {
-        const size = Math.ceil((low + high) / 2);
-        fullScreenContent.style.fontSize = `${size}px`;
-        if (fullScreenContent.getBoundingClientRect().height <= fullScreenText.clientHeight + 1 &&
-            fullScreenContent.getBoundingClientRect().width <= fullScreenText.clientWidth + 1) low = size;
-        else high = size - 1;
-        if (low >= high) break;
-      }
-      fullScreenContent.style.fontSize = `${low}px`;
+    function applyFullScreenFontSize() {
+      fullScreenContent.style.fontSize = `${fullScreenFontSize}px`;
+      smallerTextButton.disabled = fullScreenFontSize <= 48;
+      largerTextButton.disabled = fullScreenFontSize >= 272;
+    }
+
+    function adjustFullScreenFontSize(change) {
+      fullScreenFontSize = Math.max(48, Math.min(272, fullScreenFontSize + change));
+      applyFullScreenFontSize();
+      try { localStorage.setItem('tsutaeru-display-size', String(fullScreenFontSize)); } catch (_) {}
     }
 
     function stopSpeaking() {
@@ -627,13 +634,15 @@
     document.getElementById('showButton').addEventListener('click', () => {
       if (!message) { setStatus('文字を選んでください'); return; }
       fullScreen.hidden = false;
-      fitFullScreenText();
+      applyFullScreenFontSize();
       document.getElementById('closeFullScreen').focus();
     });
     document.getElementById('closeFullScreen').addEventListener('click', () => {
       fullScreen.hidden = true;
       document.getElementById('showButton').focus();
     });
+    smallerTextButton.addEventListener('click', () => adjustFullScreenFontSize(-16));
+    largerTextButton.addEventListener('click', () => adjustFullScreenFontSize(16));
     letterModeButton.addEventListener('click', () => {
       readLetters = !readLetters;
       letterModeButton.setAttribute('aria-pressed', String(readLetters));
@@ -641,7 +650,6 @@
     });
     phrasesModeButton.addEventListener('click', () => setKeyboardMode(false));
     kanaModeButton.addEventListener('click', () => setKeyboardMode(true));
-    window.addEventListener('resize', () => { if (!fullScreen.hidden) fitFullScreenText(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
 
     renderCategories();
