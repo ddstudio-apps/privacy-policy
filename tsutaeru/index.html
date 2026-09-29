@@ -460,7 +460,7 @@
           else if (action === 'backspace') { message = message.slice(0, -1); updateMessage(); }
           else if (action === 'clear') {
             if (!message) return;
-            if (window.confirm('書いた文章を全部消しますか？')) { stopSpeaking(); message = ''; updateMessage(); }
+            stopSpeaking(); message = ''; updateMessage();
           } else addLetter(action);
         });
         container.append(button);
