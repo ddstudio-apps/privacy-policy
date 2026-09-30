@@ -140,8 +140,16 @@
     .phrase-button.urgent { border-color: #e3a798; background: var(--red-soft); color: #842c1d; }
     .phrase-button:active { background: var(--blue-soft); }
 
+    .app.phrases-only .message-panel { flex: 0 0 clamp(150px, 23vh, 240px); }
+    .app.phrases-only .phrases { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .app.phrases-only .category-tab { height: clamp(46px, 6vh, 60px); font-size: clamp(16px, 1.8vw, 21px); }
+    .app.phrases-only .phrase-grid { flex: 1 1 auto; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
+    .app.phrases-only .phrase-button { min-height: 0; font-size: clamp(20px, 2.7vw, 30px); }
+    .app.phrases-only .keyboard { display: none; }
+
     .keyboard { flex: 0 0 auto; min-height: 0; }
     .keyboard-head {
+      flex: 0 0 auto;
       min-height: 42px;
       display: flex;
       align-items: center;
@@ -364,18 +372,12 @@
       </div>
     </section>
 
-    <section id="phrases" class="phrases" aria-label="よく使う言葉" hidden>
-      <div id="categoryTabs" class="category-tabs" role="tablist" aria-label="言葉の種類"></div>
-      <div id="phraseGrid" class="phrase-grid" role="tabpanel" aria-label="選んだ種類の言葉"></div>
-    </section>
-
-    <section class="keyboard" aria-label="50音で入力">
-      <div class="keyboard-head">
+    <div class="keyboard-head">
         <span id="keyboardHint">文字を押して文章を作る</span>
         <div class="keyboard-tools">
           <div class="layout-modes" role="group" aria-label="画面の表示">
-            <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="false">文例あり</button>
-            <button id="kanaMode" class="layout-mode" type="button" aria-pressed="true">50音を大きく</button>
+            <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="false">文例</button>
+            <button id="kanaMode" class="layout-mode" type="button" aria-pressed="true">50音</button>
             <button id="flickMode" class="layout-mode" type="button" aria-pressed="false">フリック</button>
             <button id="handwritingMode" class="layout-mode" type="button" aria-pressed="false">手書き</button>
           </div>
@@ -383,7 +385,14 @@
           <button id="qrButton" class="qr-button" type="button" aria-label="このアプリのQRコードを表示">QR</button>
           <button id="letterMode" class="speak-letters" type="button" aria-pressed="true"><span class="switch-mark" aria-hidden="true">☑</span>文字も読む：入</button>
         </div>
-      </div>
+    </div>
+
+    <section id="phrases" class="phrases" aria-label="よく使う言葉" hidden>
+      <div id="categoryTabs" class="category-tabs" role="tablist" aria-label="言葉の種類"></div>
+      <div id="phraseGrid" class="phrase-grid" role="tabpanel" aria-label="選んだ種類の言葉"></div>
+    </section>
+
+    <section class="keyboard" aria-label="50音で入力">
       <div id="keys" class="keys"></div>
     </section>
     <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -901,6 +910,7 @@
 
     function setKeyboardMode(mode) {
       keyboardMode = mode;
+      appElement.classList.toggle('phrases-only', mode === 'phrases');
       appElement.classList.toggle('kana-only', mode !== 'phrases');
       appElement.classList.toggle('flick-mode', mode === 'flick');
       phrasesSection.hidden = mode !== 'phrases';
