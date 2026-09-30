@@ -332,25 +332,24 @@
       background: var(--background);
     }
     .handwriting-screen[hidden] { display: none; }
-    .handwriting-toolbar { display: flex; gap: 8px; flex: 0 0 auto; }
-    .handwriting-toolbar button {
-      flex: 1;
+    .handwriting-toolbar { display: flex; gap: 6px; flex: 0 0 auto; overflow-x: auto; }
+    .handwriting-toolbar > button {
+      flex: 0 0 clamp(88px, 10vw, 130px);
       min-width: 0;
-      min-height: 54px;
+      min-height: 52px;
       border: 2px solid var(--blue);
       border-radius: 10px;
       background: var(--paper);
       color: var(--blue-dark);
-      font-size: clamp(18px, 2.4vw, 25px);
+      font-size: clamp(16px, 1.8vw, 20px);
       font-weight: 800;
       white-space: nowrap;
     }
     .handwriting-toolbar .handwriting-back { background: var(--blue); color: white; }
-    .handwriting-toolbar button:disabled { opacity: .45; }
-    .handwriting-options { display: flex; gap: 8px; flex: 0 0 auto; }
-    .pen-group { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; }
-    .pen-group-label { flex: 0 0 auto; font-size: 18px; font-weight: 800; }
-    .pen-choice { flex: 1; min-width: 0; min-height: 48px; border: 2px solid var(--line); border-radius: 10px; background: white; color: var(--ink); font-size: clamp(16px, 2vw, 22px); font-weight: 800; white-space: nowrap; }
+    .handwriting-toolbar > button:disabled { opacity: .45; }
+    .pen-group { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 4px; }
+    .pen-group-label { flex: 0 0 auto; font-size: clamp(14px, 1.5vw, 17px); font-weight: 800; }
+    .pen-choice { flex: 1 1 0; min-width: 0; min-height: 52px; padding: 0 2px; border: 2px solid var(--line); border-radius: 10px; background: white; color: var(--ink); font-size: clamp(15px, 1.6vw, 19px); font-weight: 800; white-space: nowrap; }
     .pen-choice[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
     .pen-choice.color-blue { color: #1565c0; }
     .pen-choice.color-red { color: #a83a24; }
@@ -373,7 +372,8 @@
       .keyboard-head #keyboardHint { display: none; }
       .layout-mode { font-size: 14px; padding-inline: 6px; }
       .keyboard-tools { gap: 5px; }
-      .handwriting-options { flex-direction: column; }
+      .handwriting-toolbar > button { flex-basis: 78px; font-size: 14px; }
+      .pen-group { flex: 0 0 168px; }
     }
 
     @media (max-height: 700px) {
@@ -441,8 +441,6 @@
       <button id="closeHandwriting" class="handwriting-back" type="button">もどる</button>
       <button id="undoHandwriting" type="button" disabled>一つ戻す</button>
       <button id="clearHandwriting" type="button" disabled>全部消す</button>
-    </div>
-    <div class="handwriting-options">
       <div class="pen-group" role="group" aria-label="線の太さ">
         <span class="pen-group-label">太さ</span>
         <button class="pen-choice" type="button" data-pen-width="6" aria-pressed="false">細</button>
