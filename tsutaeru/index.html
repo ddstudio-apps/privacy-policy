@@ -295,6 +295,35 @@
     .full-screen-actions button:disabled { opacity: 0.45; }
     .full-screen-actions .read-again { background: var(--blue); color: white; }
 
+    .handwriting-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      background: var(--background);
+    }
+    .handwriting-screen[hidden] { display: none; }
+    .handwriting-toolbar { display: flex; gap: 8px; flex: 0 0 auto; }
+    .handwriting-toolbar button {
+      flex: 1;
+      min-width: 0;
+      min-height: 54px;
+      border: 2px solid var(--blue);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--blue-dark);
+      font-size: clamp(18px, 2.4vw, 25px);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .handwriting-toolbar .handwriting-back { background: var(--blue); color: white; }
+    .handwriting-toolbar button:disabled { opacity: .45; }
+    .handwriting-paper { flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--line); border-radius: 12px; background: white; }
+    .handwriting-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
     @media (max-width: 1000px) { .keyboard-head #keyboardHint { display: none; } }
 
     @media (max-width: 800px) {
@@ -348,6 +377,7 @@
             <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="false">文例あり</button>
             <button id="kanaMode" class="layout-mode" type="button" aria-pressed="true">50音を大きく</button>
             <button id="flickMode" class="layout-mode" type="button" aria-pressed="false">フリック</button>
+            <button id="handwritingMode" class="layout-mode" type="button" aria-pressed="false">手書き</button>
           </div>
           <button id="voiceButton" class="voice-button" type="button">声を選ぶ</button>
           <button id="qrButton" class="qr-button" type="button" aria-label="このアプリのQRコードを表示">QR</button>
@@ -367,6 +397,15 @@
       <button id="largerText" type="button" aria-label="文字を大きくする">＋ 大きく</button>
       <button id="readAgain" class="read-again" type="button">読み上げ</button>
     </div>
+  </section>
+
+  <section id="handwritingScreen" class="handwriting-screen" role="dialog" aria-modal="true" aria-label="手書きの画面" hidden>
+    <div class="handwriting-toolbar">
+      <button id="closeHandwriting" class="handwriting-back" type="button">もどる</button>
+      <button id="undoHandwriting" type="button" disabled>一つ戻す</button>
+      <button id="clearHandwriting" type="button" disabled>全部消す</button>
+    </div>
+    <div class="handwriting-paper"><canvas id="handwritingCanvas" class="handwriting-canvas" aria-label="指で書く場所"></canvas></div>
   </section>
 
   <section id="qrPanel" class="qr-panel" role="dialog" aria-modal="true" aria-labelledby="qrTitle" hidden>
@@ -460,6 +499,12 @@
     const phrasesModeButton = document.getElementById('phrasesMode');
     const kanaModeButton = document.getElementById('kanaMode');
     const flickModeButton = document.getElementById('flickMode');
+    const handwritingModeButton = document.getElementById('handwritingMode');
+    const handwritingScreen = document.getElementById('handwritingScreen');
+    const handwritingCanvas = document.getElementById('handwritingCanvas');
+    const handwritingContext = handwritingCanvas.getContext('2d');
+    const undoHandwritingButton = document.getElementById('undoHandwriting');
+    const clearHandwritingButton = document.getElementById('clearHandwriting');
     const voicePanel = document.getElementById('voicePanel');
     const voiceList = document.getElementById('voiceList');
     const qrPanel = document.getElementById('qrPanel');
@@ -472,6 +517,8 @@
     let candidateMode = null;
     let pendingMark = null;
     let keyboardMode = 'kana';
+    const handwritingStrokes = [];
+    let handwritingPointerId = null;
     let fullScreenFontSize = 112;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
     try {
@@ -865,6 +912,102 @@
       renderKeyboard();
     }
 
+    function updateHandwritingButtons() {
+      const hasStrokes = handwritingStrokes.length > 0;
+      undoHandwritingButton.disabled = !hasStrokes;
+      clearHandwritingButton.disabled = !hasStrokes;
+    }
+
+    function handwritingPoint(event) {
+      const rect = handwritingCanvas.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+        y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+      };
+    }
+
+    function paintHandwritingStroke(stroke) {
+      const width = handwritingCanvas.clientWidth;
+      const height = handwritingCanvas.clientHeight;
+      if (stroke.length === 1) {
+        handwritingContext.beginPath();
+        handwritingContext.arc(stroke[0].x * width, stroke[0].y * height, 5, 0, Math.PI * 2);
+        handwritingContext.fill();
+        return;
+      }
+      handwritingContext.beginPath();
+      handwritingContext.moveTo(stroke[0].x * width, stroke[0].y * height);
+      stroke.slice(1).forEach(point => handwritingContext.lineTo(point.x * width, point.y * height));
+      handwritingContext.stroke();
+    }
+
+    function redrawHandwriting() {
+      handwritingContext.clearRect(0, 0, handwritingCanvas.clientWidth, handwritingCanvas.clientHeight);
+      handwritingStrokes.forEach(paintHandwritingStroke);
+      updateHandwritingButtons();
+    }
+
+    function resizeHandwriting() {
+      if (handwritingScreen.hidden) return;
+      const width = handwritingCanvas.clientWidth;
+      const height = handwritingCanvas.clientHeight;
+      if (!width || !height) return;
+      const scale = window.devicePixelRatio || 1;
+      handwritingCanvas.width = Math.round(width * scale);
+      handwritingCanvas.height = Math.round(height * scale);
+      handwritingContext.setTransform(scale, 0, 0, scale, 0, 0);
+      handwritingContext.strokeStyle = '#17313c';
+      handwritingContext.fillStyle = '#17313c';
+      handwritingContext.lineWidth = 10;
+      handwritingContext.lineCap = 'round';
+      handwritingContext.lineJoin = 'round';
+      redrawHandwriting();
+    }
+
+    handwritingModeButton.addEventListener('click', () => {
+      handwritingScreen.hidden = false;
+      handwritingModeButton.setAttribute('aria-pressed', 'true');
+      requestAnimationFrame(resizeHandwriting);
+      document.getElementById('closeHandwriting').focus();
+    });
+    document.getElementById('closeHandwriting').addEventListener('click', () => {
+      handwritingScreen.hidden = true;
+      handwritingModeButton.setAttribute('aria-pressed', 'false');
+      handwritingModeButton.focus();
+    });
+    undoHandwritingButton.addEventListener('click', () => {
+      handwritingStrokes.pop();
+      redrawHandwriting();
+    });
+    clearHandwritingButton.addEventListener('click', () => {
+      handwritingStrokes.length = 0;
+      redrawHandwriting();
+    });
+    handwritingCanvas.addEventListener('pointerdown', event => {
+      if (handwritingPointerId !== null || event.button !== 0) return;
+      handwritingPointerId = event.pointerId;
+      handwritingCanvas.setPointerCapture(event.pointerId);
+      handwritingStrokes.push([handwritingPoint(event)]);
+      paintHandwritingStroke(handwritingStrokes[handwritingStrokes.length - 1]);
+      updateHandwritingButtons();
+    });
+    handwritingCanvas.addEventListener('pointermove', event => {
+      if (event.pointerId !== handwritingPointerId) return;
+      const stroke = handwritingStrokes[handwritingStrokes.length - 1];
+      const point = handwritingPoint(event);
+      const previous = stroke[stroke.length - 1];
+      if (point.x === previous.x && point.y === previous.y) return;
+      stroke.push(point);
+      paintHandwritingStroke([previous, point]);
+    });
+    const finishHandwritingStroke = event => {
+      if (event.pointerId !== handwritingPointerId) return;
+      handwritingPointerId = null;
+      if (handwritingCanvas.hasPointerCapture(event.pointerId)) handwritingCanvas.releasePointerCapture(event.pointerId);
+    };
+    handwritingCanvas.addEventListener('pointerup', finishHandwritingStroke);
+    handwritingCanvas.addEventListener('pointercancel', finishHandwritingStroke);
+
     document.getElementById('readButton').addEventListener('click', () => speak(message));
     document.getElementById('readAgain').addEventListener('click', () => speak(message));
     document.getElementById('qrButton').addEventListener('click', () => {
@@ -906,7 +1049,10 @@
     phrasesModeButton.addEventListener('click', () => setKeyboardMode('phrases'));
     kanaModeButton.addEventListener('click', () => setKeyboardMode('kana'));
     flickModeButton.addEventListener('click', () => setKeyboardMode('flick'));
-    window.addEventListener('resize', () => { if (!fullScreen.hidden) applyFullScreenFontSize(); });
+    window.addEventListener('resize', () => {
+      if (!fullScreen.hidden) applyFullScreenFontSize();
+      if (!handwritingScreen.hidden) resizeHandwriting();
+    });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopSpeaking(); });
 
     renderCategories();
