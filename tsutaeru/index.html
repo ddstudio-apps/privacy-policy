@@ -53,6 +53,7 @@
     }
 
     .message-panel {
+      position: relative;
       background: var(--paper);
       border: 2px solid var(--line);
       border-radius: 16px;
@@ -99,6 +100,20 @@
 
     .message-actions .show-button { background: var(--paper); color: var(--blue-dark); }
     .message-actions button:active { transform: scale(.98); }
+    .undo-clear {
+      position: absolute;
+      left: 18px;
+      bottom: 12px;
+      min-height: 52px;
+      padding: 0 20px;
+      border: 2px solid var(--blue);
+      border-radius: 10px;
+      background: var(--blue-soft);
+      color: var(--blue-dark);
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .undo-clear[hidden] { display: none; }
 
     .phrases { flex: 0 0 auto; min-height: 0; }
     .category-tabs {
@@ -263,6 +278,9 @@
     .app.kana-only .key { height: 100%; font-size: clamp(30px, 3.7vw, 42px); }
     .app.kana-only .key.action { font-size: clamp(15px, 2vw, 22px); }
     .app.kana-only .key.return { font-size: 23px; }
+    .app.number-mode .keys { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
+    .app.number-mode .key { height: 100%; font-size: clamp(28px, 4vw, 44px); }
+    .app.number-mode .key.action { font-size: clamp(17px, 2.2vw, 24px); }
 
     .app.flick-mode .keys { width: min(100%, 100vh); width: min(100%, 100dvh); align-self: center; grid-template-columns: minmax(0, 3fr) minmax(0, 2.5fr); grid-template-rows: minmax(0, 1fr); }
     .app.flick-mode .flick-kana-grid { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 5px; }
@@ -329,6 +347,13 @@
     }
     .handwriting-toolbar .handwriting-back { background: var(--blue); color: white; }
     .handwriting-toolbar button:disabled { opacity: .45; }
+    .handwriting-options { display: flex; gap: 8px; flex: 0 0 auto; }
+    .pen-group { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; }
+    .pen-group-label { flex: 0 0 auto; font-size: 18px; font-weight: 800; }
+    .pen-choice { flex: 1; min-width: 0; min-height: 48px; border: 2px solid var(--line); border-radius: 10px; background: white; color: var(--ink); font-size: clamp(16px, 2vw, 22px); font-weight: 800; white-space: nowrap; }
+    .pen-choice[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
+    .pen-choice.color-blue { color: #17627b; }
+    .pen-choice.color-red { color: #a83a24; }
     .handwriting-paper { flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--line); border-radius: 12px; background: white; }
     .handwriting-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
@@ -348,6 +373,7 @@
       .keyboard-head #keyboardHint { display: none; }
       .layout-mode { font-size: 14px; padding-inline: 6px; }
       .keyboard-tools { gap: 5px; }
+      .handwriting-options { flex-direction: column; }
     }
 
     @media (max-height: 700px) {
@@ -366,6 +392,7 @@
   <main id="app" class="app kana-only">
     <section class="message-panel" aria-label="伝える言葉">
       <div id="message" class="message-display empty" aria-live="polite">ここに言葉が出ます</div>
+      <button id="undoClear" class="undo-clear" type="button" hidden>元に戻す</button>
       <div class="message-actions">
         <button id="readButton" type="button">読み上げ</button>
         <button id="showButton" class="show-button" type="button">大きく見せる</button>
@@ -378,6 +405,7 @@
           <div class="layout-modes" role="group" aria-label="画面の表示">
             <button id="phrasesMode" class="layout-mode" type="button" aria-pressed="false">文例</button>
             <button id="kanaMode" class="layout-mode" type="button" aria-pressed="true">50音</button>
+            <button id="numberMode" class="layout-mode" type="button" aria-pressed="false">数字</button>
             <button id="flickMode" class="layout-mode" type="button" aria-pressed="false">フリック</button>
             <button id="handwritingMode" class="layout-mode" type="button" aria-pressed="false">手書き</button>
           </div>
@@ -392,7 +420,7 @@
       <div id="phraseGrid" class="phrase-grid" role="tabpanel" aria-label="選んだ種類の言葉"></div>
     </section>
 
-    <section class="keyboard" aria-label="50音で入力">
+    <section id="keyboardSection" class="keyboard" aria-label="50音で入力">
       <div id="keys" class="keys"></div>
     </section>
     <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -413,6 +441,20 @@
       <button id="closeHandwriting" class="handwriting-back" type="button">もどる</button>
       <button id="undoHandwriting" type="button" disabled>一つ戻す</button>
       <button id="clearHandwriting" type="button" disabled>全部消す</button>
+    </div>
+    <div class="handwriting-options">
+      <div class="pen-group" role="group" aria-label="線の太さ">
+        <span class="pen-group-label">太さ</span>
+        <button class="pen-choice" type="button" data-pen-width="6" aria-pressed="false">細</button>
+        <button class="pen-choice" type="button" data-pen-width="10" aria-pressed="true">標準</button>
+        <button class="pen-choice" type="button" data-pen-width="18" aria-pressed="false">太</button>
+      </div>
+      <div class="pen-group" role="group" aria-label="線の色">
+        <span class="pen-group-label">色</span>
+        <button class="pen-choice" type="button" data-pen-color="#17313c" aria-pressed="true">黒</button>
+        <button class="pen-choice color-blue" type="button" data-pen-color="#17627b" aria-pressed="false">青</button>
+        <button class="pen-choice color-red" type="button" data-pen-color="#a83a24" aria-pressed="false">赤</button>
+      </div>
     </div>
     <div class="handwriting-paper"><canvas id="handwritingCanvas" class="handwriting-canvas" aria-label="指で書く場所"></canvas></div>
   </section>
@@ -440,8 +482,8 @@
 
     const categories = [
       { label: 'まず', phrases: [
-        'はい', 'いいえ', 'わかりません', '少し待ってください',
-        'もう一度お願いします', '看護師さんを呼んでください', '苦しいです', '痛いです'
+        'はい', 'いいえ', '息が苦しいです', '吸引してください',
+        '看護師さんを呼んでください', '痛いです', 'わかりません', '少し待ってください'
       ]},
       { label: '呼吸', phrases: [
         '息が苦しいです', '痰がからんでいます', '吸引してください', '咳が出ます',
@@ -507,6 +549,7 @@
     const phrasesSection = document.getElementById('phrases');
     const phrasesModeButton = document.getElementById('phrasesMode');
     const kanaModeButton = document.getElementById('kanaMode');
+    const numberModeButton = document.getElementById('numberMode');
     const flickModeButton = document.getElementById('flickMode');
     const handwritingModeButton = document.getElementById('handwritingMode');
     const handwritingScreen = document.getElementById('handwritingScreen');
@@ -514,6 +557,7 @@
     const handwritingContext = handwritingCanvas.getContext('2d');
     const undoHandwritingButton = document.getElementById('undoHandwriting');
     const clearHandwritingButton = document.getElementById('clearHandwriting');
+    const undoClearButton = document.getElementById('undoClear');
     const voicePanel = document.getElementById('voicePanel');
     const voiceList = document.getElementById('voiceList');
     const qrPanel = document.getElementById('qrPanel');
@@ -528,6 +572,10 @@
     let keyboardMode = 'kana';
     const handwritingStrokes = [];
     let handwritingPointerId = null;
+    let penWidth = 10;
+    let penColor = '#17313c';
+    let lastClearedMessage = '';
+    let clearUndoTimer = null;
     let fullScreenFontSize = 112;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
     try {
@@ -538,11 +586,30 @@
     function setStatus(text) { statusElement.textContent = text; }
 
     function updateMessage() {
+      if (message) hideClearUndo();
       messageElement.textContent = message || 'ここに言葉が出ます';
       messageElement.classList.toggle('empty', !message);
       messageElement.classList.toggle('long', message.length > 28);
       fullScreenContent.textContent = message;
       messageElement.scrollTop = messageElement.scrollHeight;
+    }
+
+    function hideClearUndo() {
+      undoClearButton.hidden = true;
+      lastClearedMessage = '';
+      clearTimeout(clearUndoTimer);
+    }
+
+    function clearMessage() {
+      if (!message) return;
+      stopSpeaking();
+      const previousMessage = message;
+      message = '';
+      updateMessage();
+      lastClearedMessage = previousMessage;
+      undoClearButton.hidden = false;
+      clearTimeout(clearUndoTimer);
+      clearUndoTimer = setTimeout(hideClearUndo, 10000);
     }
 
     function applyFullScreenFontSize() {
@@ -708,7 +775,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'phrase-button';
-        if (['苦しいです', '息が苦しいです', '痰が出せません', 'すぐ来てください', '看護師さんを呼んでください'].includes(phrase)) button.classList.add('urgent');
+        if (['苦しいです', '息が苦しいです', '吸引してください', '痰が出せません', 'すぐ来てください', '看護師さんを呼んでください'].includes(phrase)) button.classList.add('urgent');
         button.textContent = phrase;
         button.addEventListener('click', () => {
           if (pendingMark) { pendingMark = null; renderKeyboard(); }
@@ -836,6 +903,24 @@
         }
         addLetter(letter);
       };
+      if (keyboardMode === 'numbers') {
+        const numberKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '：', '〜', '空白', '一字消す', '全部消す', '。'];
+        numberKeys.forEach(label => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'key' + (['空白', '一字消す', '全部消す'].includes(label) ? ' action' : '');
+          if (label === '一字消す') button.classList.add('backspace');
+          if (label === '全部消す') button.classList.add('clear');
+          button.textContent = label;
+          button.addEventListener('click', () => {
+            if (label === '一字消す') { message = message.slice(0, -1); updateMessage(); }
+            else if (label === '全部消す') clearMessage();
+            else addLetter(label === '空白' ? ' ' : label);
+          });
+          container.append(button);
+        });
+        return;
+      }
       let actionContainer = container;
       if (keyboardMode === 'flick') {
         const kanaGrid = document.createElement('div');
@@ -896,8 +981,7 @@
           } else if (action === 'backspace') {
             message = message.slice(0, -1); updateMessage();
           } else if (action === 'clear') {
-            if (!message) return;
-            stopSpeaking(); message = ''; updateMessage();
+            clearMessage();
           } else {
             if (candidateMode) { candidateMode = null; renderKeyboard(); }
             addLetter(action);
@@ -913,9 +997,12 @@
       appElement.classList.toggle('phrases-only', mode === 'phrases');
       appElement.classList.toggle('kana-only', mode !== 'phrases');
       appElement.classList.toggle('flick-mode', mode === 'flick');
+      appElement.classList.toggle('number-mode', mode === 'numbers');
+      document.getElementById('keyboardSection').setAttribute('aria-label', mode === 'numbers' ? '数字で入力' : mode === 'flick' ? 'フリックで入力' : '50音で入力');
       phrasesSection.hidden = mode !== 'phrases';
       phrasesModeButton.setAttribute('aria-pressed', String(mode === 'phrases'));
       kanaModeButton.setAttribute('aria-pressed', String(mode === 'kana'));
+      numberModeButton.setAttribute('aria-pressed', String(mode === 'numbers'));
       flickModeButton.setAttribute('aria-pressed', String(mode === 'flick'));
       candidateMode = null;
       pendingMark = null;
@@ -939,15 +1026,19 @@
     function paintHandwritingStroke(stroke) {
       const width = handwritingCanvas.clientWidth;
       const height = handwritingCanvas.clientHeight;
-      if (stroke.length === 1) {
+      const points = stroke.points;
+      handwritingContext.strokeStyle = stroke.color;
+      handwritingContext.fillStyle = stroke.color;
+      handwritingContext.lineWidth = stroke.width;
+      if (points.length === 1) {
         handwritingContext.beginPath();
-        handwritingContext.arc(stroke[0].x * width, stroke[0].y * height, 5, 0, Math.PI * 2);
+        handwritingContext.arc(points[0].x * width, points[0].y * height, stroke.width / 2, 0, Math.PI * 2);
         handwritingContext.fill();
         return;
       }
       handwritingContext.beginPath();
-      handwritingContext.moveTo(stroke[0].x * width, stroke[0].y * height);
-      stroke.slice(1).forEach(point => handwritingContext.lineTo(point.x * width, point.y * height));
+      handwritingContext.moveTo(points[0].x * width, points[0].y * height);
+      points.slice(1).forEach(point => handwritingContext.lineTo(point.x * width, point.y * height));
       handwritingContext.stroke();
     }
 
@@ -966,9 +1057,6 @@
       handwritingCanvas.width = Math.round(width * scale);
       handwritingCanvas.height = Math.round(height * scale);
       handwritingContext.setTransform(scale, 0, 0, scale, 0, 0);
-      handwritingContext.strokeStyle = '#17313c';
-      handwritingContext.fillStyle = '#17313c';
-      handwritingContext.lineWidth = 10;
       handwritingContext.lineCap = 'round';
       handwritingContext.lineJoin = 'round';
       redrawHandwriting();
@@ -993,11 +1081,19 @@
       handwritingStrokes.length = 0;
       redrawHandwriting();
     });
+    document.querySelectorAll('[data-pen-width]').forEach(button => button.addEventListener('click', () => {
+      penWidth = Number(button.dataset.penWidth);
+      document.querySelectorAll('[data-pen-width]').forEach(choice => choice.setAttribute('aria-pressed', String(choice === button)));
+    }));
+    document.querySelectorAll('[data-pen-color]').forEach(button => button.addEventListener('click', () => {
+      penColor = button.dataset.penColor;
+      document.querySelectorAll('[data-pen-color]').forEach(choice => choice.setAttribute('aria-pressed', String(choice === button)));
+    }));
     handwritingCanvas.addEventListener('pointerdown', event => {
       if (handwritingPointerId !== null || event.button !== 0) return;
       handwritingPointerId = event.pointerId;
       handwritingCanvas.setPointerCapture(event.pointerId);
-      handwritingStrokes.push([handwritingPoint(event)]);
+      handwritingStrokes.push({ points: [handwritingPoint(event)], color: penColor, width: penWidth });
       paintHandwritingStroke(handwritingStrokes[handwritingStrokes.length - 1]);
       updateHandwritingButtons();
     });
@@ -1005,10 +1101,10 @@
       if (event.pointerId !== handwritingPointerId) return;
       const stroke = handwritingStrokes[handwritingStrokes.length - 1];
       const point = handwritingPoint(event);
-      const previous = stroke[stroke.length - 1];
+      const previous = stroke.points[stroke.points.length - 1];
       if (point.x === previous.x && point.y === previous.y) return;
-      stroke.push(point);
-      paintHandwritingStroke([previous, point]);
+      stroke.points.push(point);
+      paintHandwritingStroke({ points: [previous, point], color: stroke.color, width: stroke.width });
     });
     const finishHandwritingStroke = event => {
       if (event.pointerId !== handwritingPointerId) return;
@@ -1019,6 +1115,12 @@
     handwritingCanvas.addEventListener('pointercancel', finishHandwritingStroke);
 
     document.getElementById('readButton').addEventListener('click', () => speak(message));
+    undoClearButton.addEventListener('click', () => {
+      if (!lastClearedMessage) return;
+      message = lastClearedMessage;
+      hideClearUndo();
+      updateMessage();
+    });
     document.getElementById('readAgain').addEventListener('click', () => speak(message));
     document.getElementById('qrButton').addEventListener('click', () => {
       qrPanel.hidden = false;
@@ -1058,6 +1160,7 @@
     });
     phrasesModeButton.addEventListener('click', () => setKeyboardMode('phrases'));
     kanaModeButton.addEventListener('click', () => setKeyboardMode('kana'));
+    numberModeButton.addEventListener('click', () => setKeyboardMode('numbers'));
     flickModeButton.addEventListener('click', () => setKeyboardMode('flick'));
     window.addEventListener('resize', () => {
       if (!fullScreen.hidden) applyFullScreenFontSize();
@@ -1069,6 +1172,9 @@
     renderPhrases();
     setKeyboardMode('kana');
     updateMessage();
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
