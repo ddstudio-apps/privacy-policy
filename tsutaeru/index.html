@@ -353,6 +353,40 @@
       white-space: nowrap;
       font-size: clamp(13px, 1.5vw, 18px);
     }
+    #app .message-panel {
+      flex: 0 0 116px;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 54px minmax(0, 1fr);
+    }
+    #app .message-display, #app .message-display.long {
+      min-width: 0;
+      padding: 4px 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      overflow-wrap: normal;
+      white-space: nowrap;
+      font-size: clamp(31px, 4vw, 46px);
+      line-height: 1.1;
+    }
+    #app .message-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 3px 6px;
+      border-left: 0;
+      border-top: 1.5px solid var(--line);
+    }
+    #app .message-actions button { min-height: 0; font-size: clamp(19px, 2.3vw, 25px); }
+    #app .undo-clear { top: 4px; bottom: auto; left: 10px; min-height: 46px; font-size: 18px; }
+    #app .keyboard-tools {
+      grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, .9fr) minmax(0, .5fr) minmax(0, 1.3fr);
+      gap: 4px;
+    }
+    #app .layout-modes { grid-column: 1 / span 5; gap: 4px; }
+    #app .layout-mode, #app .voice-button, #app .qr-button, #app .speak-letters { min-height: 58px; }
+    #app .voice-button { padding-inline: 2px; white-space: nowrap; font-size: clamp(15px, 1.7vw, 20px); }
+    #app .speak-letters { gap: 3px; padding: 2px; white-space: nowrap; font-size: clamp(13px, 1.5vw, 18px); }
     .app.number-mode .keys { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
     .app.number-mode .key { height: 100%; font-size: clamp(28px, 4vw, 44px); }
     .app.number-mode .key.action { font-size: clamp(17px, 2.2vw, 24px); }
@@ -445,6 +479,8 @@
       .keyboard-tools { gap: 5px; }
       .app.kana-only:not(.number-mode):not(.flick-mode) .keyboard-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .app.kana-only:not(.number-mode):not(.flick-mode) .layout-modes { grid-column: 1 / -1; }
+      #app .keyboard-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      #app .layout-modes { grid-column: 1 / -1; }
       .handwriting-toolbar > button { font-size: clamp(18px, 5vw, 23px); }
     }
 
@@ -561,31 +597,23 @@
         '看護師さんを呼んでください', '痛いです', 'わかりません', '少し待ってください'
       ]},
       { label: 'いつもの', phrases: [] },
-      { label: '呼吸', phrases: [
+      { label: '体調', phrases: [
         '息が苦しいです', '痰がからんでいます', '吸引してください', '咳が出ます',
-        '痰が出せません', '呼吸がしづらいです', 'のど元を見てください', 'すぐ来てください'
-      ]},
-      { label: '痛み', phrases: [
+        '痰が出せません', '呼吸がしづらいです', 'のど元を見てください', 'すぐ来てください',
         '首が痛いです', '耳が痛いです', '頭が痛いです', 'お腹が痛いです',
         '傷が痛いです', '痛み止めがほしいです', '気持ちが悪いです', 'めまいがします'
       ]},
-      { label: '姿勢', phrases: [
+      { label: '暮らし', phrases: [
         '起こしてください', '横になりたいです', '体の向きを変えてください', '枕を直してください',
-        'トイレに行きたいです', '寒いです', '暑いです', '眠れません'
-      ]},
-      { label: '口・食事', phrases: [
+        'トイレに行きたいです', '寒いです', '暑いです', '眠れません',
         '口が乾きます', '口の中をきれいにしてください', 'つばがたまっています', 'うがいできますか',
         '飲んでもよいですか', '食べてもよいですか', 'お腹がすきました', '吐きそうです'
       ]},
-      { label: '気持ち', phrases: [
+      { label: '会話・家族', phrases: [
         '不安です', 'こわいです', '一人にしないでください', '少し休みたいです',
-        '大丈夫です', '安心しました', 'ありがとうございます', '助かりました'
-      ]},
-      { label: '説明', phrases: [
+        '大丈夫です', '安心しました', 'ありがとうございます', '助かりました',
         'ゆっくり話してください', 'もう一度説明してください', '紙に書いてください', '選択肢を示してください',
-        '今どうなっていますか', '次は何をしますか', 'いつまで続きますか', '先生と話したいです'
-      ]},
-      { label: '家族', phrases: [
+        '今どうなっていますか', '次は何をしますか', 'いつまで続きますか', '先生と話したいです',
         '家族を呼んでください', '家族に連絡してください', '家族と会いたいです', '家族はどこにいますか',
         '伝えてほしいことがあります', '家に帰りたいです', '今何時ですか', '今日は何日ですか'
       ]}
@@ -719,7 +747,7 @@
       messageElement.classList.toggle('long', message.length > 28);
       fullScreenContent.textContent = message;
       messageElement.scrollTop = cursorPosition === chars.length ? messageElement.scrollHeight : previousScroll;
-      messageElement.scrollLeft = keyboardMode === 'kana' && cursorPosition === chars.length ? messageElement.scrollWidth : previousScrollLeft;
+      messageElement.scrollLeft = cursorPosition === chars.length ? messageElement.scrollWidth : previousScrollLeft;
     }
 
     messageElement.addEventListener('click', event => {
@@ -1210,7 +1238,7 @@
       candidateMode = null;
       pendingMark = null;
       renderKeyboard();
-      if (mode === 'kana' && cursorPosition === [...message].length) messageElement.scrollLeft = messageElement.scrollWidth;
+      if (cursorPosition === [...message].length) messageElement.scrollLeft = messageElement.scrollWidth;
       if (mode === 'phrases') { renderCategories(); renderPhrases(); }
     }
 
