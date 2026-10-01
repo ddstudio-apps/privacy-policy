@@ -847,7 +847,10 @@
     }
 
     function stopSpeaking() {
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if ('speechSynthesis' in window) {
+        const synthesis = window.speechSynthesis;
+        if (currentUtterance || synthesis.speaking || synthesis.pending) synthesis.cancel();
+      }
       currentUtterance = null;
     }
 
@@ -862,8 +865,10 @@
       utterance.lang = 'ja-JP';
       utterance.rate = 1;
       utterance.volume = 1;
-      const selectedVoice = window.speechSynthesis.getVoices().find(voice => voice.voiceURI === selectedVoiceURI && voice.lang.toLowerCase().startsWith('ja'));
-      if (selectedVoice) utterance.voice = selectedVoice;
+      const japaneseVoices = window.speechSynthesis.getVoices().filter(voice => voice.lang.toLowerCase().startsWith('ja'));
+      const selectedVoice = japaneseVoices.find(voice => voice.voiceURI === selectedVoiceURI);
+      const defaultVoice = japaneseVoices.find(voice => voice.default) || japaneseVoices[0];
+      if (selectedVoice || defaultVoice) utterance.voice = selectedVoice || defaultVoice;
       utterance.onstart = () => setStatus('読み上げています');
       utterance.onend = () => { currentUtterance = null; setStatus('読み上げが終わりました'); };
       utterance.onerror = event => {
@@ -1403,7 +1408,10 @@
       voicePanel.hidden = true;
       document.getElementById('voiceButton').focus();
     });
-    if ('speechSynthesis' in window) window.speechSynthesis.addEventListener('voiceschanged', () => { if (!voicePanel.hidden) renderVoices(); });
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.addEventListener('voiceschanged', () => { if (!voicePanel.hidden) renderVoices(); });
+    }
     document.getElementById('showButton').addEventListener('click', () => {
       if (!message) { setStatus('文字を選んでください'); return; }
       fullScreen.hidden = false;
