@@ -299,6 +299,60 @@
     .app.kana-only .key { height: 100%; font-size: clamp(34px, 4vw, 46px); }
     .app.kana-only .key.action { font-size: clamp(15px, 2vw, 22px); }
     .app.kana-only .key.return { font-size: 23px; }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .message-panel {
+      flex: 0 0 116px;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 54px minmax(0, 1fr);
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .message-display,
+    .app.kana-only:not(.number-mode):not(.flick-mode) .message-display.long {
+      min-width: 0;
+      padding: 4px 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      overflow-wrap: normal;
+      white-space: nowrap;
+      font-size: clamp(31px, 4vw, 46px);
+      line-height: 1.1;
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .message-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 3px 6px;
+      border-left: 0;
+      border-top: 1.5px solid var(--line);
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .message-actions button {
+      min-height: 0;
+      font-size: clamp(19px, 2.3vw, 25px);
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .undo-clear {
+      top: 4px;
+      bottom: auto;
+      left: 10px;
+      min-height: 46px;
+      font-size: 18px;
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .keyboard-tools {
+      grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.45fr) minmax(0, .7fr) minmax(0, 1.65fr);
+      gap: 4px;
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .layout-modes {
+      grid-column: 1 / span 5;
+      gap: 4px;
+    }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .layout-mode,
+    .app.kana-only:not(.number-mode):not(.flick-mode) .voice-button,
+    .app.kana-only:not(.number-mode):not(.flick-mode) .qr-button,
+    .app.kana-only:not(.number-mode):not(.flick-mode) .speak-letters { min-height: 58px; }
+    .app.kana-only:not(.number-mode):not(.flick-mode) .speak-letters {
+      gap: 3px;
+      padding: 2px;
+      white-space: nowrap;
+      font-size: clamp(13px, 1.5vw, 18px);
+    }
     .app.number-mode .keys { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
     .app.number-mode .key { height: 100%; font-size: clamp(28px, 4vw, 44px); }
     .app.number-mode .key.action { font-size: clamp(17px, 2.2vw, 24px); }
@@ -389,6 +443,8 @@
       .category-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .layout-mode { font-size: 16px; padding-inline: 2px; }
       .keyboard-tools { gap: 5px; }
+      .app.kana-only:not(.number-mode):not(.flick-mode) .keyboard-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .app.kana-only:not(.number-mode):not(.flick-mode) .layout-modes { grid-column: 1 / -1; }
       .handwriting-toolbar > button { font-size: clamp(18px, 5vw, 23px); }
     }
 
@@ -631,6 +687,7 @@
     function updateMessage() {
       if (message) hideClearUndo();
       const previousScroll = messageElement.scrollTop;
+      const previousScrollLeft = messageElement.scrollLeft;
       const chars = [...message];
       cursorPosition = Math.max(0, Math.min(cursorPosition, chars.length));
       messageElement.replaceChildren();
@@ -662,6 +719,7 @@
       messageElement.classList.toggle('long', message.length > 28);
       fullScreenContent.textContent = message;
       messageElement.scrollTop = cursorPosition === chars.length ? messageElement.scrollHeight : previousScroll;
+      messageElement.scrollLeft = keyboardMode === 'kana' && cursorPosition === chars.length ? messageElement.scrollWidth : previousScrollLeft;
     }
 
     messageElement.addEventListener('click', event => {
@@ -1152,6 +1210,7 @@
       candidateMode = null;
       pendingMark = null;
       renderKeyboard();
+      if (mode === 'kana' && cursorPosition === [...message].length) messageElement.scrollLeft = messageElement.scrollWidth;
       if (mode === 'phrases') { renderCategories(); renderPhrases(); }
     }
 
