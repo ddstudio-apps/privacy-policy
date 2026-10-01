@@ -390,6 +390,7 @@
     .app.number-mode .keys { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
     .app.number-mode .key { height: 100%; font-size: clamp(28px, 4vw, 44px); }
     .app.number-mode .key.action { font-size: clamp(17px, 2.2vw, 24px); }
+    .app.number-mode .key.space { grid-column: span 2; }
 
     .app.flick-mode .keys { width: min(100%, 100vh); width: min(100%, 100dvh); align-self: center; grid-template-columns: minmax(0, 3fr) minmax(0, 2.5fr); grid-template-rows: minmax(0, 1fr); }
     .app.flick-mode .flick-kana-grid { min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 5px; }
@@ -861,7 +862,10 @@
         return;
       }
       stopSpeaking();
-      const utterance = new SpeechSynthesisUtterance(text);
+      const spokenText = text.replace(/(^|[^\d])([0-9]{1,2})[:：]([0-5][0-9])(?![\d:：])/g,
+        (match, before, hour, minute) => Number(hour) < 24
+          ? `${before}${Number(hour)}時${Number(minute) ? `${Number(minute)}分` : ''}` : match);
+      const utterance = new SpeechSynthesisUtterance(spokenText);
       utterance.lang = 'ja-JP';
       utterance.rate = 1;
       utterance.volume = 1;
@@ -915,14 +919,14 @@
       }
     }
 
-    function addLetter(letter) {
+    function addLetter(letter, speakLetter = true) {
       const chars = [...message];
       const inserted = [...letter];
       chars.splice(cursorPosition, 0, ...inserted);
       message = chars.join('');
       cursorPosition += inserted.length;
       updateMessage();
-      if (readLetters) speak(letter);
+      if (readLetters && speakLetter) speak(letter);
     }
 
     function convertLastLetter(action) {
@@ -1140,18 +1144,19 @@
         addLetter(letter);
       };
       if (keyboardMode === 'numbers') {
-        const numberKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '：', '〜', '空白', '一字消す', '全部消す', '。'];
+        const numberKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ':', '〜', '空白', '一字消す', '全部消す'];
         numberKeys.forEach(label => {
           const button = document.createElement('button');
           button.type = 'button';
           button.className = 'key' + (['空白', '一字消す', '全部消す'].includes(label) ? ' action' : '');
+          if (label === '空白') button.classList.add('space');
           if (label === '一字消す') button.classList.add('backspace');
           if (label === '全部消す') button.classList.add('clear');
           button.textContent = label;
           button.addEventListener('click', () => {
             if (label === '一字消す') deleteBeforeCursor();
             else if (label === '全部消す') clearMessage();
-            else addLetter(label === '空白' ? ' ' : label);
+            else addLetter(label === '空白' ? ' ' : label, label !== ':');
           });
           container.append(button);
         });
