@@ -60,7 +60,7 @@
       min-height: 128px;
       flex: 1 1 150px;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 165px;
+      grid-template-columns: minmax(0, 1fr) 180px;
       overflow: hidden;
     }
 
@@ -77,6 +77,8 @@
 
     .message-display.long { font-size: clamp(29px, 3.4vw, 42px); }
     .message-display.empty { color: #74868c; font-weight: 600; }
+    .message-char { cursor: text; }
+    .message-caret { display: inline-block; width: 3px; height: 1em; margin: 0 -1.5px; border-radius: 2px; background: #b34b2c; vertical-align: -0.12em; pointer-events: none; }
 
     .message-actions {
       padding: 9px;
@@ -89,12 +91,12 @@
 
     .message-actions button {
       flex: 1;
-      min-height: 48px;
+      min-height: 56px;
       border-radius: 11px;
       border: 2px solid var(--blue);
       background: var(--blue);
       color: #fff;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
     }
 
@@ -104,7 +106,7 @@
       position: absolute;
       left: 18px;
       bottom: 12px;
-      min-height: 52px;
+      min-height: 62px;
       padding: 0 20px;
       border: 2px solid var(--blue);
       border-radius: 10px;
@@ -118,19 +120,19 @@
     .phrases { flex: 0 0 auto; min-height: 0; }
     .category-tabs {
       display: grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr));
-      gap: 5px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
       margin-bottom: 6px;
     }
 
     .category-tab {
-      height: 42px;
+      height: 60px;
       padding: 0 3px;
       border: 1px solid var(--line);
       border-radius: 9px;
       background: var(--paper);
       color: var(--ink);
-      font-size: 17px;
+      font-size: 20px;
       font-weight: 750;
       white-space: nowrap;
     }
@@ -154,37 +156,42 @@
 
     .phrase-button.urgent { border-color: #e3a798; background: var(--red-soft); color: #842c1d; }
     .phrase-button:active { background: var(--blue-soft); }
+    .favorite-edit-button { border-style: dashed; color: var(--blue-dark); }
 
-    .app.phrases-only .message-panel { flex: 0 0 clamp(150px, 23vh, 240px); }
+    .app.phrases-only .message-panel { flex: 0 0 clamp(150px, 18vh, 210px); }
     .app.phrases-only .phrases { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-    .app.phrases-only .category-tab { height: clamp(46px, 6vh, 60px); font-size: clamp(16px, 1.8vw, 21px); }
-    .app.phrases-only .phrase-grid { flex: 1 1 auto; min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
+    .app.phrases-only .category-tab { height: clamp(58px, 7vh, 68px); font-size: clamp(19px, 2vw, 23px); }
+    .app.phrases-only .phrase-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(64px, 1fr)); }
+    .app.phrases-only .phrase-grid.favorites-grid { grid-template-rows: repeat(3, minmax(64px, 1fr)); }
+    .app.phrases-only .phrase-grid.favorites-empty { grid-template-rows: minmax(0, 1fr); }
+    .favorites-empty .favorite-edit-button { grid-column: 1 / -1; }
     .app.phrases-only .phrase-button { min-height: 0; font-size: clamp(20px, 2.7vw, 30px); }
     .app.phrases-only .keyboard { display: none; }
 
     .keyboard { flex: 0 0 auto; min-height: 0; }
     .keyboard-head {
       flex: 0 0 auto;
-      min-height: 42px;
+      min-height: 0;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
       font-size: 16px;
       font-weight: 800;
     }
 
-    .keyboard-head span { color: var(--muted); }
-    .keyboard-tools { display: flex; align-items: center; gap: 8px; }
-    .layout-modes { display: flex; gap: 5px; }
+    .keyboard-head #keyboardHint { display: none; }
+    .keyboard-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .layout-modes { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
     .layout-mode {
-      min-height: 42px;
-      padding: 3px 10px;
+      min-width: 0;
+      min-height: 60px;
+      padding: 3px 4px;
       border: 1.5px solid var(--line);
       border-radius: 8px;
       background: var(--paper);
       color: var(--ink);
-      font-size: 16px;
+      font-size: clamp(17px, 2.1vw, 23px);
       font-weight: 800;
       white-space: nowrap;
     }
@@ -194,20 +201,21 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      min-height: 42px;
-      padding: 3px 10px;
+      min-width: 0;
+      min-height: 56px;
+      padding: 3px 8px;
       border: 1.5px solid var(--line);
       border-radius: 8px;
       background: var(--paper);
       color: var(--ink);
-      font-size: 15px;
+      font-size: clamp(17px, 2vw, 21px);
       font-weight: 750;
     }
 
     .speak-letters[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
     .speak-letters .switch-mark { font-size: 20px; line-height: 1; color: var(--blue); }
-    .voice-button { min-width: 110px; font-size: 17px; }
-    .qr-button { min-width: 55px; font-size: 18px; }
+    .voice-button { font-size: clamp(18px, 2.1vw, 22px); }
+    .qr-button { font-size: 21px; }
 
     .qr-panel {
       position: fixed;
@@ -224,7 +232,7 @@
     .qr-card h2 { margin: 0; font-size: 28px; }
     .qr-card p { margin: 0; color: var(--muted); font-size: 18px; text-align: center; }
     .qr-card img { display: block; width: min(100%, 480px, 58vh); height: auto; image-rendering: pixelated; }
-    .qr-close { width: 100%; min-height: 60px; border: 2px solid var(--blue); border-radius: 10px; background: var(--blue); color: white; font-size: 23px; font-weight: 800; }
+    .qr-close { width: 100%; min-height: 70px; border: 2px solid var(--blue); border-radius: 10px; background: var(--blue); color: white; font-size: 23px; font-weight: 800; }
 
     .voice-panel {
       position: fixed;
@@ -242,9 +250,22 @@
     .voice-card h2 { margin: 0; font-size: 26px; }
     .voice-help { margin: 0; color: var(--muted); font-size: 18px; }
     .voice-list { display: grid; gap: 8px; overflow-y: auto; }
-    .voice-choice, .voice-close { min-height: 58px; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font-size: 21px; font-weight: 750; }
+    .voice-choice, .voice-close { min-height: 68px; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font-size: 21px; font-weight: 750; }
     .voice-choice[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
     .voice-close { align-self: stretch; background: var(--blue); border-color: var(--blue); color: white; }
+
+    .favorite-panel { position: fixed; inset: 0; z-index: 35; display: flex; align-items: center; justify-content: center; padding: 14px; background: #17313ca8; }
+    .favorite-panel[hidden] { display: none; }
+    .favorite-card { width: min(100%, 620px); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--paper); }
+    .favorite-card h2 { margin: 0; font-size: 26px; }
+    .favorite-card p { margin: 0; color: var(--muted); font-size: 17px; }
+    .favorite-fields { display: grid; gap: 8px; }
+    .favorite-field { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 20px; font-weight: 800; }
+    .favorite-field input { width: 100%; min-height: 52px; padding: 6px 10px; border: 2px solid var(--line); border-radius: 9px; font: inherit; font-weight: 600; }
+    .favorite-actions { display: flex; gap: 8px; }
+    .favorite-actions button { flex: 1; min-height: 66px; border: 2px solid var(--blue); border-radius: 10px; background: var(--paper); color: var(--blue-dark); font-size: 21px; font-weight: 800; }
+    .favorite-actions .favorite-save { background: var(--blue); color: white; }
+    .favorite-reset { min-height: 62px; border: 2px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--blue-dark); font-size: 18px; font-weight: 800; }
 
     .keys { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
 
@@ -272,10 +293,10 @@
     .key.clear { background: #f7e8e3; color: #852c1b; border-color: #e2b7aa; }
     .key.return { grid-column: span 3; background: var(--blue-soft); color: var(--blue-dark); font-size: 23px; }
 
-    .app.kana-only .message-panel { flex: 0 0 clamp(150px, 23vh, 240px); }
+    .app.kana-only .message-panel { flex: 0 0 clamp(150px, 18vh, 210px); }
     .app.kana-only .keyboard { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .app.kana-only .keys { flex: 1 1 auto; min-height: 0; grid-template-rows: repeat(6, minmax(0, 1fr)); }
-    .app.kana-only .key { height: 100%; font-size: clamp(30px, 3.7vw, 42px); }
+    .app.kana-only .key { height: 100%; font-size: clamp(34px, 4vw, 46px); }
     .app.kana-only .key.action { font-size: clamp(15px, 2vw, 22px); }
     .app.kana-only .key.return { font-size: 23px; }
     .app.number-mode .keys { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
@@ -317,7 +338,7 @@
     .full-screen-text { flex: 1; min-height: 0; display: flex; overflow-y: auto; }
     .full-screen-content { margin: auto; max-width: 100%; min-width: 0; text-align: center; font-size: 44px; font-weight: 800; line-height: 1.18; overflow-wrap: anywhere; white-space: pre-wrap; }
     .full-screen-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-    .full-screen-actions button { min-width: 160px; min-height: 60px; border: 2px solid var(--blue); border-radius: 12px; background: var(--paper); color: var(--blue-dark); font-size: 23px; font-weight: 800; }
+    .full-screen-actions button { min-width: 175px; min-height: 70px; border: 2px solid var(--blue); border-radius: 12px; background: var(--paper); color: var(--blue-dark); font-size: 23px; font-weight: 800; }
     .full-screen-actions button:disabled { opacity: 0.45; }
     .full-screen-actions .read-again { background: var(--blue); color: white; }
 
@@ -332,56 +353,49 @@
       background: var(--background);
     }
     .handwriting-screen[hidden] { display: none; }
-    .handwriting-toolbar { display: flex; gap: 6px; flex: 0 0 auto; overflow-x: auto; }
+    .handwriting-toolbar { display: flex; gap: 10px; flex: 0 0 auto; }
     .handwriting-toolbar > button {
-      flex: 0 0 clamp(88px, 10vw, 130px);
+      flex: 1;
       min-width: 0;
-      min-height: 52px;
+      min-height: clamp(76px, 9vh, 96px);
       border: 2px solid var(--blue);
       border-radius: 10px;
       background: var(--paper);
       color: var(--blue-dark);
-      font-size: clamp(16px, 1.8vw, 20px);
+      font-size: clamp(22px, 3vw, 31px);
       font-weight: 800;
       white-space: nowrap;
     }
     .handwriting-toolbar .handwriting-back { background: var(--blue); color: white; }
     .handwriting-toolbar > button:disabled { opacity: .45; }
-    .pen-group { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 4px; }
-    .pen-group-label { flex: 0 0 auto; font-size: clamp(14px, 1.5vw, 17px); font-weight: 800; }
-    .pen-choice { flex: 1 1 0; min-width: 0; min-height: 52px; padding: 0 2px; border: 2px solid var(--line); border-radius: 10px; background: white; color: var(--ink); font-size: clamp(15px, 1.6vw, 19px); font-weight: 800; white-space: nowrap; }
-    .pen-choice[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
-    .pen-choice.color-blue { color: #1565c0; }
-    .pen-choice.color-red { color: #a83a24; }
-    .handwriting-paper { flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--line); border-radius: 12px; background: white; }
+    .handwriting-paper { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 2px solid var(--line); border-radius: 12px; background: white; }
     .handwriting-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    .undo-handwriting-clear { position: absolute; top: 12px; left: 12px; min-height: 62px; padding: 0 20px; border: 2px solid var(--blue); border-radius: 10px; background: var(--blue-soft); color: var(--blue-dark); font-size: 20px; font-weight: 800; }
+    .undo-handwriting-clear[hidden] { display: none; }
 
     @media (max-width: 1000px) { .keyboard-head #keyboardHint { display: none; } }
 
     @media (max-width: 800px) {
       .keyboard-head #keyboardHint { display: none; }
-      .message-panel { grid-template-columns: minmax(0, 1fr) 145px; }
-      .message-actions button { font-size: 19px; }
-      .category-tab { font-size: 15px; }
+      .message-panel { grid-template-columns: minmax(0, 1fr) 160px; }
+      .message-actions button { font-size: 21px; }
       .phrase-button { font-size: 17px; }
-      .keys { gap: 4px; }
+      .keys { gap: 3px; }
       .key.action { font-size: 15px; }
     }
 
     @media (max-width: 700px) {
       .keyboard-head #keyboardHint { display: none; }
-      .layout-mode { font-size: 14px; padding-inline: 6px; }
+      .category-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .layout-mode { font-size: 16px; padding-inline: 2px; }
       .keyboard-tools { gap: 5px; }
-      .handwriting-toolbar > button { flex-basis: 78px; font-size: 14px; }
-      .pen-group { flex: 0 0 168px; }
+      .handwriting-toolbar > button { font-size: clamp(18px, 5vw, 23px); }
     }
 
     @media (max-height: 700px) {
       .app { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
       .message-panel { min-height: 100px; }
-      .category-tab { height: 37px; }
       .phrase-button { min-height: 44px; }
-      .keyboard-head { min-height: 42px; }
       .key { height: clamp(46px, 8vh, 58px); }
     }
 
@@ -441,20 +455,8 @@
       <button id="closeHandwriting" class="handwriting-back" type="button">もどる</button>
       <button id="undoHandwriting" type="button" disabled>一つ戻す</button>
       <button id="clearHandwriting" type="button" disabled>全部消す</button>
-      <div class="pen-group" role="group" aria-label="線の太さ">
-        <span class="pen-group-label">太さ</span>
-        <button class="pen-choice" type="button" data-pen-width="6" aria-pressed="false">細</button>
-        <button class="pen-choice" type="button" data-pen-width="10" aria-pressed="true">標準</button>
-        <button class="pen-choice" type="button" data-pen-width="18" aria-pressed="false">太</button>
-      </div>
-      <div class="pen-group" role="group" aria-label="線の色">
-        <span class="pen-group-label">色</span>
-        <button class="pen-choice" type="button" data-pen-color="#17313c" aria-pressed="true">黒</button>
-        <button class="pen-choice color-blue" type="button" data-pen-color="#1565c0" aria-pressed="false">青</button>
-        <button class="pen-choice color-red" type="button" data-pen-color="#a83a24" aria-pressed="false">赤</button>
-      </div>
     </div>
-    <div class="handwriting-paper"><canvas id="handwritingCanvas" class="handwriting-canvas" aria-label="指で書く場所"></canvas></div>
+    <div class="handwriting-paper"><canvas id="handwritingCanvas" class="handwriting-canvas" aria-label="指で書く場所"></canvas><button id="undoHandwritingClear" class="undo-handwriting-clear" type="button" hidden>元に戻す</button></div>
   </section>
 
   <section id="qrPanel" class="qr-panel" role="dialog" aria-modal="true" aria-labelledby="qrTitle" hidden>
@@ -475,14 +477,34 @@
     </div>
   </section>
 
+  <section id="favoritePanel" class="favorite-panel" role="dialog" aria-modal="true" aria-labelledby="favoriteTitle" hidden>
+    <div class="favorite-card">
+      <h2 id="favoriteTitle">いつもの文例を登録</h2>
+      <p>よく使う言葉を5つまで入れられます。このiPad内に保存されます。</p>
+      <div class="favorite-fields">
+        <label class="favorite-field">1<input class="favorite-input" type="text" maxlength="60" autocomplete="off"></label>
+        <label class="favorite-field">2<input class="favorite-input" type="text" maxlength="60" autocomplete="off"></label>
+        <label class="favorite-field">3<input class="favorite-input" type="text" maxlength="60" autocomplete="off"></label>
+        <label class="favorite-field">4<input class="favorite-input" type="text" maxlength="60" autocomplete="off"></label>
+        <label class="favorite-field">5<input class="favorite-input" type="text" maxlength="60" autocomplete="off"></label>
+      </div>
+      <button id="resetPhraseHistory" class="favorite-reset" type="button">頻用を初期に戻す</button>
+      <div class="favorite-actions">
+        <button id="cancelFavorites" type="button">もどる</button>
+        <button id="saveFavorites" class="favorite-save" type="button">保存する</button>
+      </div>
+    </div>
+  </section>
+
   <script>
     'use strict';
 
     const categories = [
-      { label: 'まず', phrases: [
+      { label: '頻用', phrases: [
         'はい', 'いいえ', '息が苦しいです', '吸引してください',
         '看護師さんを呼んでください', '痛いです', 'わかりません', '少し待ってください'
       ]},
+      { label: 'いつもの', phrases: [] },
       { label: '呼吸', phrases: [
         '息が苦しいです', '痰がからんでいます', '吸引してください', '咳が出ます',
         '痰が出せません', '呼吸がしづらいです', 'のど元を見てください', 'すぐ来てください'
@@ -555,12 +577,19 @@
     const handwritingContext = handwritingCanvas.getContext('2d');
     const undoHandwritingButton = document.getElementById('undoHandwriting');
     const clearHandwritingButton = document.getElementById('clearHandwriting');
+    const undoHandwritingClearButton = document.getElementById('undoHandwritingClear');
     const undoClearButton = document.getElementById('undoClear');
+    const favoritePanel = document.getElementById('favoritePanel');
+    const favoriteInputs = [...document.querySelectorAll('.favorite-input')];
     const voicePanel = document.getElementById('voicePanel');
     const voiceList = document.getElementById('voiceList');
     const qrPanel = document.getElementById('qrPanel');
     let message = '';
+    let cursorPosition = 0;
+    let cursorVisible = false;
     let currentCategory = 0;
+    let favoritePhrases = [];
+    let phraseCounts = Object.create(null);
     let readLetters = true;
     let currentUtterance = null;
     let selectedVoiceURI = '';
@@ -569,13 +598,29 @@
     let pendingMark = null;
     let keyboardMode = 'kana';
     const handwritingStrokes = [];
+    let lastClearedStrokes = null;
+    let handwritingClearUndoTimer = null;
     let handwritingPointerId = null;
-    let penWidth = 10;
-    let penColor = '#17313c';
+    const penWidth = 10;
+    const penColor = '#17313c';
     let lastClearedMessage = '';
+    let lastClearedCursor = 0;
+    let lastClearedCursorVisible = false;
     let clearUndoTimer = null;
     let fullScreenFontSize = 112;
     try { selectedVoiceURI = localStorage.getItem('tsutaeru-voice') || ''; } catch (_) {}
+    try {
+      const savedFavorites = JSON.parse(localStorage.getItem('tsutaeru-favorites') || '[]');
+      if (Array.isArray(savedFavorites)) favoritePhrases = savedFavorites.filter(value => typeof value === 'string').map(value => value.trim().slice(0, 60)).filter(Boolean).slice(0, 5);
+    } catch (_) {}
+    try {
+      const savedCounts = JSON.parse(localStorage.getItem('tsutaeru-phrase-counts') || '{}');
+      if (savedCounts && typeof savedCounts === 'object' && !Array.isArray(savedCounts)) {
+        Object.entries(savedCounts).forEach(([phrase, count]) => {
+          if (Number.isSafeInteger(count) && count > 0) phraseCounts[phrase] = count;
+        });
+      }
+    } catch (_) {}
     try {
       const savedSize = Number(localStorage.getItem('tsutaeru-display-size'));
       if (savedSize >= 48 && savedSize <= 272) fullScreenFontSize = savedSize;
@@ -585,11 +630,61 @@
 
     function updateMessage() {
       if (message) hideClearUndo();
-      messageElement.textContent = message || 'ここに言葉が出ます';
+      const previousScroll = messageElement.scrollTop;
+      const chars = [...message];
+      cursorPosition = Math.max(0, Math.min(cursorPosition, chars.length));
+      messageElement.replaceChildren();
+      if (!message) messageElement.textContent = 'ここに言葉が出ます';
+      else {
+        const fragment = document.createDocumentFragment();
+        chars.forEach((character, index) => {
+          if (cursorVisible && cursorPosition === index) {
+            const caret = document.createElement('span');
+            caret.className = 'message-caret';
+            caret.setAttribute('aria-hidden', 'true');
+            fragment.append(caret);
+          }
+          const span = document.createElement('span');
+          span.className = 'message-char';
+          span.dataset.index = String(index);
+          span.textContent = character;
+          fragment.append(span);
+        });
+        if (cursorVisible && cursorPosition === chars.length) {
+          const caret = document.createElement('span');
+          caret.className = 'message-caret';
+          caret.setAttribute('aria-hidden', 'true');
+          fragment.append(caret);
+        }
+        messageElement.append(fragment);
+      }
       messageElement.classList.toggle('empty', !message);
       messageElement.classList.toggle('long', message.length > 28);
       fullScreenContent.textContent = message;
-      messageElement.scrollTop = messageElement.scrollHeight;
+      messageElement.scrollTop = cursorPosition === chars.length ? messageElement.scrollHeight : previousScroll;
+    }
+
+    messageElement.addEventListener('click', event => {
+      if (!message) return;
+      const character = event.target.closest('.message-char');
+      if (character && messageElement.contains(character)) {
+        const rect = character.getBoundingClientRect();
+        cursorPosition = Number(character.dataset.index) + (event.clientX >= rect.left + rect.width / 2 ? 1 : 0);
+      } else cursorPosition = [...message].length;
+      cursorVisible = true;
+      candidateMode = null;
+      pendingMark = null;
+      updateMessage();
+      renderKeyboard();
+    });
+
+    function deleteBeforeCursor() {
+      if (!cursorPosition) return;
+      const chars = [...message];
+      chars.splice(cursorPosition - 1, 1);
+      message = chars.join('');
+      cursorPosition--;
+      updateMessage();
     }
 
     function hideClearUndo() {
@@ -602,7 +697,11 @@
       if (!message) return;
       stopSpeaking();
       const previousMessage = message;
+      lastClearedCursor = cursorPosition;
+      lastClearedCursorVisible = cursorVisible;
       message = '';
+      cursorPosition = 0;
+      cursorVisible = false;
       updateMessage();
       lastClearedMessage = previousMessage;
       undoClearButton.hidden = false;
@@ -724,13 +823,18 @@
     }
 
     function addLetter(letter) {
-      message += letter;
+      const chars = [...message];
+      const inserted = [...letter];
+      chars.splice(cursorPosition, 0, ...inserted);
+      message = chars.join('');
+      cursorPosition += inserted.length;
       updateMessage();
       if (readLetters) speak(letter);
     }
 
     function convertLastLetter(action) {
-      const last = message.slice(-1);
+      const chars = [...message];
+      const last = chars[cursorPosition - 1];
       let converted = candidateGroups[action].map[last];
       if (!converted) {
         const from = action === 'voiced' ? 'ぱぴぷぺぽ' : 'ばびぶべぼ';
@@ -739,12 +843,33 @@
         if (index >= 0) converted = [...to][index];
       }
       if (!converted) return false;
-      message = message.slice(0, -1) + converted;
+      chars[cursorPosition - 1] = converted;
+      message = chars.join('');
       pendingMark = { action, original: last };
       updateMessage();
       if (readLetters) speak(converted);
       renderKeyboard();
       return true;
+    }
+
+    function frequentPhrases() {
+      const initial = categories[0].phrases;
+      const urgent = initial.slice(2, 5);
+      const candidates = [...new Set([...initial, ...categories.slice(2).flatMap(category => category.phrases), ...favoritePhrases])]
+        .filter(phrase => !urgent.includes(phrase));
+      candidates.sort((a, b) => {
+        const countDifference = (phraseCounts[b] || 0) - (phraseCounts[a] || 0);
+        if (countDifference) return countDifference;
+        const first = initial.indexOf(a);
+        const second = initial.indexOf(b);
+        return (first < 0 ? 1000 : first) - (second < 0 ? 1000 : second);
+      });
+      return [...urgent, ...candidates.slice(0, 5)];
+    }
+
+    function recordPhraseUse(phrase) {
+      phraseCounts[phrase] = (phraseCounts[phrase] || 0) + 1;
+      try { localStorage.setItem('tsutaeru-phrase-counts', JSON.stringify(phraseCounts)); } catch (_) {}
     }
 
     function renderCategories() {
@@ -769,20 +894,40 @@
     function renderPhrases() {
       const container = document.getElementById('phraseGrid');
       container.replaceChildren();
-      categories[currentCategory].phrases.forEach(phrase => {
+      const isFavorites = currentCategory === 1;
+      container.classList.toggle('favorites-grid', isFavorites);
+      container.classList.toggle('favorites-empty', isFavorites && !favoritePhrases.length);
+      (isFavorites ? favoritePhrases : currentCategory === 0 ? frequentPhrases() : categories[currentCategory].phrases).forEach(phrase => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'phrase-button';
         if (['苦しいです', '息が苦しいです', '吸引してください', '痰が出せません', 'すぐ来てください', '看護師さんを呼んでください'].includes(phrase)) button.classList.add('urgent');
         button.textContent = phrase;
         button.addEventListener('click', () => {
+          recordPhraseUse(phrase);
           if (pendingMark) { pendingMark = null; renderKeyboard(); }
           message = phrase;
+          cursorPosition = [...message].length;
+          cursorVisible = false;
           updateMessage();
           speak(phrase);
         });
         container.append(button);
       });
+      if (isFavorites) {
+        const editButton = document.createElement('button');
+        editButton.id = 'editFavorites';
+        editButton.type = 'button';
+        editButton.className = 'phrase-button favorite-edit-button';
+        editButton.textContent = favoritePhrases.length ? '文例を変える' : '文例を登録する';
+        editButton.addEventListener('click', () => {
+          favoriteInputs.forEach((input, index) => { input.value = favoritePhrases[index] || ''; });
+          document.getElementById('resetPhraseHistory').textContent = '頻用を初期に戻す';
+          favoritePanel.hidden = false;
+          document.getElementById('cancelFavorites').focus();
+        });
+        container.append(editButton);
+      }
     }
 
     const flickPopup = document.createElement('div');
@@ -911,7 +1056,7 @@
           if (label === '全部消す') button.classList.add('clear');
           button.textContent = label;
           button.addEventListener('click', () => {
-            if (label === '一字消す') { message = message.slice(0, -1); updateMessage(); }
+            if (label === '一字消す') deleteBeforeCursor();
             else if (label === '全部消す') clearMessage();
             else addLetter(label === '空白' ? ' ' : label);
           });
@@ -965,7 +1110,9 @@
         button.addEventListener('click', () => {
           if (candidateGroups[action]) {
             if (pendingMark && pendingMark.action === action && !candidateMode) {
-              message = message.slice(0, -1) + pendingMark.original;
+              const chars = [...message];
+              chars[cursorPosition - 1] = pendingMark.original;
+              message = chars.join('');
               pendingMark = null;
               updateMessage();
               candidateMode = action;
@@ -977,7 +1124,7 @@
             candidateMode = action;
             renderKeyboard();
           } else if (action === 'backspace') {
-            message = message.slice(0, -1); updateMessage();
+            deleteBeforeCursor();
           } else if (action === 'clear') {
             clearMessage();
           } else {
@@ -1005,12 +1152,19 @@
       candidateMode = null;
       pendingMark = null;
       renderKeyboard();
+      if (mode === 'phrases') { renderCategories(); renderPhrases(); }
     }
 
     function updateHandwritingButtons() {
       const hasStrokes = handwritingStrokes.length > 0;
       undoHandwritingButton.disabled = !hasStrokes;
       clearHandwritingButton.disabled = !hasStrokes;
+    }
+
+    function hideHandwritingClearUndo() {
+      undoHandwritingClearButton.hidden = true;
+      lastClearedStrokes = null;
+      clearTimeout(handwritingClearUndoTimer);
     }
 
     function handwritingPoint(event) {
@@ -1067,6 +1221,7 @@
       document.getElementById('closeHandwriting').focus();
     });
     document.getElementById('closeHandwriting').addEventListener('click', () => {
+      hideHandwritingClearUndo();
       handwritingScreen.hidden = true;
       handwritingModeButton.setAttribute('aria-pressed', 'false');
       handwritingModeButton.focus();
@@ -1076,19 +1231,22 @@
       redrawHandwriting();
     });
     clearHandwritingButton.addEventListener('click', () => {
-      handwritingStrokes.length = 0;
+      if (!handwritingStrokes.length) return;
+      lastClearedStrokes = handwritingStrokes.splice(0);
+      redrawHandwriting();
+      undoHandwritingClearButton.hidden = false;
+      clearTimeout(handwritingClearUndoTimer);
+      handwritingClearUndoTimer = setTimeout(hideHandwritingClearUndo, 10000);
+    });
+    undoHandwritingClearButton.addEventListener('click', () => {
+      if (!lastClearedStrokes) return;
+      handwritingStrokes.push(...lastClearedStrokes);
+      hideHandwritingClearUndo();
       redrawHandwriting();
     });
-    document.querySelectorAll('[data-pen-width]').forEach(button => button.addEventListener('click', () => {
-      penWidth = Number(button.dataset.penWidth);
-      document.querySelectorAll('[data-pen-width]').forEach(choice => choice.setAttribute('aria-pressed', String(choice === button)));
-    }));
-    document.querySelectorAll('[data-pen-color]').forEach(button => button.addEventListener('click', () => {
-      penColor = button.dataset.penColor;
-      document.querySelectorAll('[data-pen-color]').forEach(choice => choice.setAttribute('aria-pressed', String(choice === button)));
-    }));
     handwritingCanvas.addEventListener('pointerdown', event => {
       if (handwritingPointerId !== null || event.button !== 0) return;
+      hideHandwritingClearUndo();
       handwritingPointerId = event.pointerId;
       handwritingCanvas.setPointerCapture(event.pointerId);
       handwritingStrokes.push({ points: [handwritingPoint(event)], color: penColor, width: penWidth });
@@ -1116,8 +1274,26 @@
     undoClearButton.addEventListener('click', () => {
       if (!lastClearedMessage) return;
       message = lastClearedMessage;
+      cursorPosition = lastClearedCursor;
+      cursorVisible = lastClearedCursorVisible;
       hideClearUndo();
       updateMessage();
+    });
+    document.getElementById('cancelFavorites').addEventListener('click', () => {
+      favoritePanel.hidden = true;
+      document.getElementById('editFavorites').focus();
+    });
+    document.getElementById('saveFavorites').addEventListener('click', () => {
+      favoritePhrases = favoriteInputs.map(input => input.value.trim()).filter(Boolean).slice(0, 5);
+      try { localStorage.setItem('tsutaeru-favorites', JSON.stringify(favoritePhrases)); } catch (_) {}
+      favoritePanel.hidden = true;
+      renderPhrases();
+      document.getElementById('editFavorites').focus();
+    });
+    document.getElementById('resetPhraseHistory').addEventListener('click', event => {
+      phraseCounts = Object.create(null);
+      try { localStorage.removeItem('tsutaeru-phrase-counts'); } catch (_) {}
+      event.currentTarget.textContent = '頻用を初期に戻しました';
     });
     document.getElementById('readAgain').addEventListener('click', () => speak(message));
     document.getElementById('qrButton').addEventListener('click', () => {
