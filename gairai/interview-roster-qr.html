@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0b766d"><title>勤務表QR読み取り</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f5f7f7;color:#173b35;font:16px -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.6}.app{max-width:600px;margin:auto;padding:20px 16px}.top{display:flex;align-items:center;gap:12px;margin-bottom:20px}h1{font-size:23px;margin:0}.box{background:#fff;border:1px solid #dce5e2;border-radius:12px;padding:20px}button{font:inherit;min-height:48px;padding:10px 16px;border:1px solid #cbd8d4;border-radius:8px;background:#fff;color:#173b35;cursor:pointer}.primary{background:#0b766d;border-color:#0b766d;color:#fff;font-weight:700;width:100%}video{width:100%;max-height:350px;background:#163b35;border-radius:8px;margin-top:16px}p{margin:10px 0}.hint{font-size:13px;color:#667085}#progress{font-weight:700;overflow-wrap:anywhere}.error{color:#a23a26}#restart{margin-top:12px}button:disabled{opacity:.6;cursor:wait}[hidden]{display:none!important}button:focus-visible{outline:3px solid #0b766d;outline-offset:3px}</style></head><body><main class="app"><header class="top"><button id="back" aria-label="面談アプリに戻る">‹</button><h1>勤務表QR読み取り</h1></header><section class="box"><button class="primary" id="start">カメラを開始</button><button id="stop" hidden>カメラを止める</button><p class="hint">Excelの切り替わるQRにカメラを向けてください。</p><video id="video" playsinline muted autoplay hidden aria-label="勤務表QRの読み取りカメラ"></video><p id="progress" role="status"></p><div id="ready" hidden><p id="month-summary"></p><button class="primary" id="return-roster">内容を確認</button></div><button id="restart" hidden>読み取りをやり直す</button></section></main>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0b766d"><title>月間勤務表QRの読み取り</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7f7;color:#173b35;font:16px -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.6}.app{max-width:600px;margin:auto;padding:20px 16px}h1{font-size:23px;margin:6px 0 20px}.sub{font-size:12px;color:#667085}.box{background:#fff;border:1px solid #dce5e2;border-radius:12px;padding:20px;margin-bottom:16px}button,.file{font:inherit;min-height:48px;padding:10px 16px;border:1px solid #cbd8d4;border-radius:8px;background:#fff;color:#173b35;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}.primary{background:#0b766d;border-color:#0b766d;color:#fff;font-weight:700}.actions{display:flex;gap:10px;flex-wrap:wrap}video{width:100%;max-height:350px;background:#163b35;border-radius:8px;margin-top:16px}p{margin:10px 0}.hint{font-size:13px;color:#667085}#progress{font-weight:700;overflow-wrap:anywhere}.error{color:#a23a26}#return-roster{width:100%;margin-top:16px}textarea{width:100%;min-height:140px;font:12px monospace;padding:10px;border:1px solid #cbd8d4;border-radius:8px}summary{cursor:pointer;padding:12px 0;min-height:44px}label.file input{display:none}button:disabled{opacity:.6;cursor:wait}[hidden]{display:none!important}button:focus-visible,textarea:focus-visible{outline:3px solid #0b766d;outline-offset:3px}</style></head><body><main class="app"><p class="sub">外来業務 · 面談カレンダー</p><h1>月間勤務表QRを読む</h1><section class="box"><p>Excelの「勤務表QR」で対象月を選び、切り替わるQRにカメラを向けてください。</p><div class="actions"><button class="primary" id="start">カメラを開始</button><button id="stop" hidden>カメラを止める</button><label class="file">QR画像を選ぶ<input id="images" type="file" accept="image/*" multiple></label></div><video id="video" playsinline muted autoplay hidden aria-label="勤務表QRの読み取りカメラ"></video><p id="progress" role="status">全QRが揃うまで、予定は保存されません。</p><div id="ready" hidden><p id="month-summary"></p><button class="primary" id="return-roster">面談アプリで内容を確認</button></div><button id="restart">読み取りをやり直す</button><details><summary>文字列から読み取る</summary><label for="raw">勤務表QRの文字列</label><textarea id="raw" spellcheck="false"></textarea><button id="parse">データを確認</button></details><div id="fallback" hidden><p class="hint">元の面談アプリを開き直した場合は、勤務データをコピーし、「管理」→「月間勤務表QR」→「文字列・ファイルから取り込む」に貼り付けてください。</p><button id="copy">勤務データをコピー</button></div><p class="hint">読み取り後、面談アプリで氏名と勤務記号を確認してから共有保存します。</p></section></main>
 <script>(function (root) {
   'use strict';
   const uid = () => root.crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -229,7 +229,7 @@
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 </script>
-<script>/*
+<script>/* jsQR 1.4.0
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -10541,7 +10541,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
   'use strict';
   const C = window.InterviewCore, $ = id => document.getElementById(id), assembler = C.makeAssembler();
   const entry = new URLSearchParams(location.hash.slice(1)), nonce = entry.get('nonce'), origin = entry.get('origin');
-  let stream = null, run = 0, timer = null, returnTimer = null, last = '', data = null, receiving = false;
+  let stream = null, run = 0, timer = null, last = '', data = null, receiving = false;
   const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
   function stop() { run++; clearTimeout(timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; $('video').srcObject = null; $('video').hidden = true; $('stop').hidden = true; $('start').hidden = false; }
   function message(text, error = false) { $('progress').textContent = text; $('progress').classList.toggle('error', error); }
@@ -10549,12 +10549,14 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
   function process(text) {
     try {
       if (text.length > 2000000) throw new Error('勤務データが大きすぎます');
-      const result = assembler.add(JSON.parse(text)); $('restart').hidden = false;
+      let records; try { const p=JSON.parse(text);records=Array.isArray(p)?p:[p]; } catch (_) { records=text.split(/\r?\n/).filter(s=>s.trim()).map(s=>JSON.parse(s)); }
+      if (!records.length) throw new Error('QRのデータがありません');
+      let result; records.forEach(p=>{result=assembler.add(p);});
       if (result.complete) {
-        if (result.data.kind !== 'month') throw new Error('月間の勤務表QRを選んでください');
-        data=result.data;stop();$('start').hidden=true;$('ready').hidden=false;
-        $('month-summary').textContent=data.month.replace('-','年')+'月 · '+data.names.length+'名';message('読み取り完了');
-      } else message('読み取り '+result.read+' / '+result.total);
+        if (result.data.kind !== 'month') throw new Error('週間勤務表のQRです。Excelの「勤務表QR」で対象月を選んでください');
+        data=result.data;stop();$('ready').hidden=false; $('month-summary').textContent=data.month.replace('-','年')+'月 · '+data.names.length+'名・'+data.payload.days+'日分'; message('すべて読み取りました。面談アプリで内容を確認してください。');
+        if (!window.opener || !nonce || !origin) $('fallback').hidden=false;
+      } else { message('QR '+result.read+'/'+result.total+'枚を読み取りました。未読：'+result.missing.slice(0,15).join('・')+(result.missing.length>15?' ほか':''));$('raw').value=''; }
     } catch (error) { stop();data=null;$('ready').hidden=true;message(error.message,true); }
   }
   $('start').addEventListener('click',async()=>{
@@ -10562,28 +10564,20 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     stop();const current=run;last='';
     try {
       const s=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
-      if(current!==run){s.getTracks().forEach(t=>t.stop());return;}stream=s;$('video').srcObject=s;$('video').hidden=false;$('stop').hidden=false;$('start').hidden=true;await $('video').play();message('QRを読み取っています…');
-      const scan=()=>{if(current!==run)return;try{const v=$('video');if(v.readyState>=2&&v.videoWidth){const code=decode(v,v.videoWidth,v.videoHeight);if(code&&code.data!==last){last=code.data;process(code.data);}}}catch(_){stop();message('読み取りを中断しました。カメラを開始し直してください。',true);return;}if(current===run)timer=setTimeout(scan,180);};scan();
-    }catch(error){stop();message(error.name==='NotAllowedError'?'Safariのカメラ許可を確認してください。':'カメラを開始できません。Safariのカメラ設定を確認してください。',true);}
+      if(current!==run){s.getTracks().forEach(t=>t.stop());return;}stream=s;$('video').srcObject=s;$('video').hidden=false;$('stop').hidden=false;$('start').hidden=true;await $('video').play();message('切り替わる勤務表QRを、全体が写るように向けてください。');
+      const scan=()=>{if(current!==run)return;try{const v=$('video');if(v.readyState>=2&&v.videoWidth){const code=decode(v,v.videoWidth,v.videoHeight);if(code&&code.data!==last){last=code.data;process(code.data);}}}catch(_){stop();message('読み取りを続けられません。QR画像を選ぶ方法をお試しください。',true);return;}if(current===run)timer=setTimeout(scan,180);};scan();
+    }catch(error){stop();message(error.name==='NotAllowedError'?'Safariのカメラ許可を確認してください。QR画像からも取り込めます。':'カメラを開始できません。QR画像を選ぶ方法をお試しください。',true);}
   });
-  $('stop').addEventListener('click',stop);
-  $('restart').addEventListener('click',()=>{stop();clearTimeout(returnTimer);assembler.reset();data=null;receiving=false;last='';$('ready').hidden=true;$('return-roster').disabled=false;$('restart').hidden=true;message('');});
-  $('back').addEventListener('click',()=>{stop();if(window.opener)window.close();else history.back();});
+  $('stop').addEventListener('click',stop);$('parse').addEventListener('click',()=>process($('raw').value.trim()));
+  $('restart').addEventListener('click',()=>{stop();assembler.reset();data=null;receiving=false;$('ready').hidden=true;$('fallback').hidden=true;$('raw').value='';message('1枚目から読み取り直してください。');});
+  $('images').addEventListener('change',async()=>{stop();try{for(const file of $('images').files){if(file.size>20000000)throw new Error('画像が大きすぎます。QR部分を切り取ってください');const url=URL.createObjectURL(file),img=new Image();try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('PNGまたはJPEGの画像を選んでください'));img.src=url;});const code=decode(img,img.naturalWidth,img.naturalHeight);if(!code)throw new Error('QR全体が鮮明に写った画像を選んでください');process(code.data);if(data||$('progress').classList.contains('error'))break;}finally{URL.revokeObjectURL(url);}}}catch(error){message(error.message,true);}$('images').value='';});
   $('return-roster').addEventListener('click',()=>{
     if(!data||receiving)return;
-    if(!window.opener||!nonce||!origin){message('面談アプリの「管理」から読み取り直してください。',true);return;}
-    try{
-      const dest=new URL(origin);
-      if(dest.protocol!=='https:'||!(dest.hostname==='script.googleusercontent.com'||dest.hostname.endsWith('-script.googleusercontent.com')))throw new Error('面談アプリの「管理」から開いてください');
-      receiving=true;$('return-roster').disabled=true;window.opener.postMessage({type:'interview-month-roster',nonce,roster:data.payload},origin);message('面談アプリで確認中…');
-      returnTimer=setTimeout(()=>{if(receiving){receiving=false;$('return-roster').disabled=false;message('接続を確認できません。「内容を確認」を押し直してください。',true);}},15000);
-    }catch(error){receiving=false;$('return-roster').disabled=false;message(error.message,true);}
+    if(!window.opener||!nonce||!origin){$('fallback').hidden=false;message('元の面談アプリとの接続がありません。勤務データをコピーして取り込めます。');return;}
+    try{const dest=new URL(origin);if(dest.protocol!=='https:'||!(dest.hostname==='script.googleusercontent.com'||dest.hostname.endsWith('-script.googleusercontent.com')))throw new Error('面談アプリの「管理」から、この読み取り画面を開いてください');receiving=true;window.opener.postMessage({type:'interview-month-roster',nonce,roster:data.payload},origin);message('面談アプリに戻して、内容を確認しています…');setTimeout(()=>{if(receiving){receiving=false;$('fallback').hidden=false;message('面談アプリで受け取れたか確認してください。受け取れない場合は勤務データをコピーできます。');}},15000);}catch(error){receiving=false;$('fallback').hidden=false;message(error.message,true);}
   });
-  window.addEventListener('message',event=>{
-    if(event.source!==window.opener||event.origin!==origin||event.data?.nonce!==nonce||event.data?.type!=='interview-roster-received')return;
-    clearTimeout(returnTimer);receiving=false;$('return-roster').disabled=false;
-    if(event.data.ok){message('面談アプリで内容を確認してください。');window.close();}else message(event.data.message||'内容を受け取れませんでした。読み取り直してください。',true);
-  });
+  window.addEventListener('message',event=>{if(event.source!==window.opener||event.origin!==origin||event.data?.nonce!==nonce||event.data?.type!=='interview-roster-received')return;receiving=false;if(event.data.ok){message('面談アプリに戻りました。元の画面で内容を確認してください。');window.close();}else message(event.data.message||'面談アプリで受け取れませんでした。',true);});
+  $('copy').addEventListener('click',async()=>{if(!data)return;const text=JSON.stringify(data.payload);try{await navigator.clipboard.writeText(text);message('勤務データをコピーしました。面談アプリに貼り付けてください。');}catch(_){$('raw').value=text;$('raw').closest('details').open=true;$('raw').focus();$('raw').select();message('勤務データを選択しました。コピーしてください。');}});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);
 })();
 </script></body></html>
